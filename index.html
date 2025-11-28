@@ -2,120 +2,323 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>كتابي القابل للتقليب</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flipbook - كتاب قابل للتقليب</title>
 
 <!-- مكتبة PageFlip -->
 <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
 <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
 <style>
-    body {
-        background:#f2f2f2;
-        margin:0;
-        font-family:Tahoma;
-    }
+  :root{
+    --container-max-width:1100px;
+  }
+  html,body{ margin:0; padding:0; font-family:Tahoma, "Segoe UI", Arial; background:#f3f3f3; direction:rtl; }
+  .wrap{ max-width:var(--container-max-width); margin:18px auto; padding:10px; box-sizing:border-box; }
 
-    /* غلاف الكتاب */
-    #book {
-        width: 70%;
-        height: 650px;
-        margin: 30px auto;
-        background:white;
-        border-radius:10px;
-        box-shadow:0 0 20px rgba(0,0,0,0.2);
-        overflow:hidden;
-    }
+  header{ text-align:center; margin-bottom:10px; }
+  header h1{ margin:0; font-size:1.4rem; }
 
-    /* صندوق الفهرس */
-    .toc-box {
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        width: 250px;
-        background: white;
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.15);
-        z-index: 999999;
-    }
+  .controls{ text-align:center; margin:10px 0 18px; }
 
-    .toc-box h3 {
-        text-align:center;
-        margin:0 0 15px;
-        font-size:22px;
-    }
+  .book-container{ display:flex; justify-content:center; align-items:flex-start; gap:20px; }
 
-    .toc-item {
-        background:#f7f7f7;
-        padding:10px;
-        margin-bottom:10px;
-        border-radius:8px;
-        cursor:pointer;
-        text-align:center;
-        transition:0.2s;
-        font-size:18px;
-    }
-    .toc-item:hover {
-        background:#dfe8ff;
-    }
+  /* Book (pageflip) */
+  #book{
+    width:100%;
+    max-width:900px;
+    height:700px;
+    background:#fff;
+    border-radius:10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    overflow:hidden;
+  }
 
-    h1 {
-        text-align:center;
-        padding:15px;
-        margin:0;
-    }
+  /* TOC (الفهرس) ثابت على اليمين، خارج منطقة الكتاب */
+  .toc {
+    width:220px;
+    max-height:80vh;
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);
+    padding:12px;
+    box-sizing:border-box;
+    overflow:auto;
+    position:sticky;
+    top:20px;
+    align-self:flex-start;
+  }
+  .toc h3{ margin:4px 0 10px; text-align:center; }
+  .toc .item{
+    background:#f7f8fb;
+    border-radius:8px;
+    padding:10px;
+    margin-bottom:10px;
+    cursor:pointer;
+    text-align:right;
+    transition:background .15s, transform .08s;
+    font-size:15px;
+  }
+  .toc .item:hover{ background:#e6f0ff; transform:translateX(-4px); }
+
+  /* responsive: hide toc on narrow screens */
+  @media (max-width:920px){
+    .book-container{ flex-direction:column; align-items:center; }
+    .toc{ position:relative; width:90%; max-width:420px; margin-bottom:10px; top:auto; }
+    #book{ height:560px; }
+  }
+  @media (max-width:480px){
+    #book{ height:420px; }
+  }
+
+  /* message style */
+  .message{ padding:18px; text-align:center; color:#333; }
+  #debug{ color:#666; font-size:0.9rem; max-width:900px; margin:8px auto; text-align:center;}
 </style>
 </head>
-
 <body>
+  <div class="wrap">
+    <header>
+      <h1>كتابي القابل لتقليب الصفحات</h1>
+      <div class="info" style="color:#444">اختبر الفهرس → اضغط على عنوان لتنتقل للصفحة</div>
+    </header>
 
-<h1>كتابي القابل للتقليب</h1>
+    <div class="controls">
+      <button id="toggleSizeBtn" class="btn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer">تبديل حجم العرض</button>
+      <button id="reverseBtn" class="btn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer;margin-left:8px">عكس ترتيب الصفحات</button>
+    </div>
 
-<!-- صندوق الفهرس -->
-<div class="toc-box">
-    <h3>الفهرس</h3>
+    <div class="book-container">
+      <!-- فهرس (آمن خارج العنصر #book) -->
+      <div class="toc" id="toc" aria-label="فهرس الكتاب">
+        <h3>الفهرس</h3>
+        <div id="tocList">
+          <!-- سيتم بناؤه آليا -->
+        </div>
+      </div>
 
-    <div class="toc-item" onclick="goPage(0)">مصر – الصفحة 1</div>
-    <div class="toc-item" onclick="goPage(1)">مصر – الصفحة 2</div>
-    <div class="toc-item" onclick="goPage(2)">العراق – الصفحة 3</div>
-    <div class="toc-item" onclick="goPage(3)">العراق – الصفحة 4</div>
-</div>
+      <!-- هنا يوضع الكتاب (PageFlip) -->
+      <div id="book" role="application" aria-live="polite"></div>
+    </div>
 
-<!-- الحاوية التي يوضع فيها الكتاب -->
-<div id="book"></div>
+    <div id="debug" aria-hidden="true"></div>
+  </div>
 
 <script>
 (function(){
+  /*********** إعدادات (عدّل هنا) ***********/
+  let images = [
+    "pages/1.jpg", // مصر
+    "pages/2.jpg", // مصر
+    "pages/3.jpg", // العراق
+    "pages/4.jpg"  // العراق
+  ];
+  // عناوين الفهرس الموافقة للصور أعلاه (يمكنك تعديلها)
+  const titles = [
+    "مصر – الصفحة 1",
+    "مصر – الصفحة 2",
+    "العراق – الصفحة 3",
+    "العراق – الصفحة 4"
+  ];
 
-    let images = [
-        "pages/1.jpg",
-        "pages/2.jpg",
-        "pages/3.jpg",
-        "pages/4.jpg"
-    ];
+  let reverseMode = true; // true يعني عكس المصفوفة لإظهار الغلاف على اليمين
+  const MAX_WIDTH_LIMIT = 900;
+  const HEIGHT_RATIO = 1.2;
 
-    const bookEl = document.getElementById("book");
+  /*********** عناصر DOM ***********/
+  const bookEl = document.getElementById("book");
+  const tocListEl = document.getElementById("tocList");
+  const debugEl = document.getElementById("debug");
+  const toggleBtn = document.getElementById("toggleSizeBtn");
+  const reverseBtn = document.getElementById("reverseBtn");
 
-    // إعدادات الكتاب
-    const pageFlip = new PageFlip(bookEl, {
-        width: 650,      
-        height: 850,
-        size: "stretch",
-        showCover: true,
-        mobileScrollSupport: false,
-        rtl: true
-    });
+  /*********** متغيرات حالة ***********/
+  let currentImgs = [];          // مصفوفة الصور بعد (reverseMode) الجارية
+  let flipInstance = null;       // مرجع PageFlip بعد التهيئة
+  let pendingGoto = null;        // إن ضغط المستخدم قبل تهيئة flip
 
-    // تحميل الصفحات
-    pageFlip.loadFromImages(images);
+  /*********** وظائف مساعدة ***********/
+  function getCtor(){
+    if(window.PageFlip) return window.PageFlip;
+    if(window.St && window.St.PageFlip) return window.St.PageFlip;
+    return null;
+  }
+  function showMessage(text){
+    bookEl.innerHTML = '<div class="message">'+text+'</div>';
+  }
 
-    // دالة الذهاب لصفحة معينة
-    window.goPage = function(num){
-        pageFlip.flip(num);
+  function getOptions(){
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const width = Math.min(MAX_WIDTH_LIMIT, Math.floor(vw * 0.92));
+    const height = Math.floor(width * HEIGHT_RATIO);
+    return {
+      width: width,
+      height: height,
+      size: "stretch",
+      showCover: true,
+      rtl: true,
+      mobileScrollSupport: false,
+      usePortrait: false
     };
+  }
+
+  function checkImages(list){
+    return Promise.all(list.map(url =>
+      fetch(url, {method:'HEAD'}).then(resp=>{
+        if(!resp.ok) throw new Error(url + " ➜ " + resp.status);
+        return url;
+      })
+    ));
+  }
+
+  /*********** بناء الفهرس (TOC) ***********/
+  function buildToc(list){
+    tocListEl.innerHTML = "";
+    // استخدم عناوين من المصفوفة titles إن كانت متاحة، وإلا اعتمد "صفحة x"
+    list.forEach((url, i) => {
+      const btn = document.createElement("div");
+      btn.className = "item";
+      btn.tabIndex = 0;
+      const label = titles[i] ? titles[i] : ("الصفحة " + (i+1));
+      btn.textContent = label;
+      btn.addEventListener('click', function(){ goToPage(i); });
+      btn.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToPage(i); }
+      });
+      tocListEl.appendChild(btn);
+    });
+  }
+
+  /*********** دالة الانتقال لصفحة معينة ***********/
+  function goToPage(index){
+    // index هنا بالنسبة لترتيب الفهرس (0-based)
+    if(!flipInstance){
+      // إذا ضغط المستخدم قبل تهيئة flip، خزّنه وسيتم تنفيذه بعد التهيئة
+      pendingGoto = index;
+      return;
+    }
+
+    // إذا كُنّا قد عكسنا المصفوفة لعرض RTL، نحتاج إلى تحويل الفهرس
+    //  - currentImgs هي المصفوفة التي استخدمت بالفعل في loadFromImages()
+    //  - index من الفهرس (0..n-1) يجب تحويله إلى realIndex داخل currentImgs
+    let realIndex;
+    // currentImgs length = n
+    if(reverseMode){
+      // عندما تكون currentImgs = images.reverse()، ونريد أن يختار المستخدم العنصر i من اليسار إلى اليمين في الفهرس
+      // يبقى التحويل: realIndex = n - 1 - i
+      realIndex = currentImgs.length - 1 - index;
+    } else {
+      realIndex = index;
+    }
+
+    // الآن نحاول استعمال أي دالة متاحة في الـ instance
+    try {
+      if(typeof flipInstance.flip === 'function'){
+        flipInstance.flip(realIndex);
+        return;
+      }
+      if(typeof flipInstance.goToPage === 'function'){
+        flipInstance.goToPage(realIndex);
+        return;
+      }
+      if(typeof flipInstance.turnTo === 'function'){
+        flipInstance.turnTo(realIndex);
+        return;
+      }
+      // كحل أخير إن لم يوجد أي من الدوال السابقة
+      console.warn("لا توجد دوال تنقل معروفة على instance. افحص window._myFlip في Console.");
+    } catch(err){
+      console.error("goToPage error:", err);
+    }
+  }
+
+  /*********** تهيئة الفليب ***********/
+  function initFlip(ctor, imgList){
+    bookEl.innerHTML = ""; // نظف المكان
+    const opts = getOptions();
+    try{
+      const flip = new ctor(bookEl, opts);
+      flip.loadFromImages(imgList);
+      flipInstance = flip;
+      window._myFlip = flip; // مرجع سهل للفحص
+      debugEl.textContent = `تم التحميل (عرض=${opts.width}px × ارتفاع=${opts.height}px)`;
+      // إن كان هناك نداء معلق للانتقال لصفحة:
+      if(pendingGoto !== null){
+        const t = pendingGoto;
+        pendingGoto = null;
+        // تنفذ بعد لحظة صغيرة حتى يكمل flip الرسم
+        setTimeout(()=> goToPage(t), 250);
+      }
+      // تحديث responsive (محاولة استدعاء updateFromOptions إن وجدت)
+      window.addEventListener('resize', function(){
+        const newOpts = getOptions();
+        try{ flip.updateFromOptions ? flip.updateFromOptions(newOpts) : null; }catch(e){}
+      });
+    }catch(err){
+      bookEl.innerHTML = '<div class="message">خطأ عند تهيئة Flipbook — افتح Console للمزيد.</div>';
+      console.error("initFlip error:", err);
+    }
+  }
+
+  /*********** نقطة الدخول START ***********/
+  function start(){
+    showMessage('جاري التحميل…');
+
+    const ctor = getCtor();
+    if(!ctor){
+      bookEl.innerHTML = '<div class="message">خطأ: مكتبة PageFlip غير محمّلة.</div>';
+      console.error("PageFlip lib not found.");
+      return;
+    }
+
+    // جهز قائمة الصور (نسخة)
+    let imgs = images.slice(0);
+
+    if(reverseMode){
+      imgs = imgs.reverse();
+    }
+    // خزّنها عالمياً لاستخدامها داخل goToPage
+    currentImgs = imgs.slice(0);
+
+    // بناء الفهرس الآن (ليس له تأثير على DOM داخل #book)
+    buildToc(currentImgs);
+
+    // تحقق من الصور ثم ابدأ التهيئة
+    checkImages(currentImgs)
+      .then(()=> initFlip(ctor, currentImgs))
+      .catch(err=>{
+        bookEl.innerHTML = '<div class="message">خطأ: بعض الصور غير متوفرة أو مساراتها خاطئة. افتح Console.</div>';
+        debugEl.textContent = "خطأ بفحص الصور: " + err.message;
+        console.error("Image check failed:", err);
+      });
+  }
+
+  /*********** أزرار تحكم بسيطة ***********/
+  toggleBtn.addEventListener('click', function(){
+    if(document.documentElement.style.getPropertyValue('--container-max-width') === '760px'){
+      document.documentElement.style.setProperty('--container-max-width','1100px');
+      this.textContent = 'تبديل حجم العرض';
+    } else {
+      document.documentElement.style.setProperty('--container-max-width','760px');
+      this.textContent = 'تكبير العرض';
+    }
+  });
+
+  reverseBtn.addEventListener('click', function(){
+    reverseMode = !reverseMode;
+    this.textContent = reverseMode ? 'إلغاء عكس الصفحات' : 'عكس ترتيب الصفحات';
+    // أعد بناء وعرض الكتاب بالترتيب الجديد
+    // نظهر رسالة قصيرة ثم نعيد التشغيل
+    start();
+  });
+
+  // ابدأ
+  start();
+
+  // expose for debugging
+  console.info("Flipbook loaded. window._myFlip references instance (after init).");
 
 })();
 </script>
-
 </body>
 </html>
