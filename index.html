@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <title>Flipbook</title>
 
-<!-- مكتبة Flipbook من CDN -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.min.css">
-<script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
+<!-- مكتبة Flipbook الجديدة من UNPKG (مضمونة وتعمل) -->
+<link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
+<script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
 <style>
   body { background:#f2f2f2; text-align:center; }
@@ -19,7 +19,6 @@
 <h2>كتابي بتقليب الصفحات</h2>
 <div id="book"></div>
 
-<!-- الكود الجديد -->
 <script>
 (function(){
   const images = [
@@ -30,12 +29,11 @@
   ];
 
   const bookEl = document.getElementById("book");
-  bookEl.innerHTML = '<p>جاري التحميل… انتظر ثانية</p>';
+  bookEl.innerHTML = '<p>جاري التحميل…</p>';
 
   function getConstructor(){
     if (window.PageFlip) return window.PageFlip;
     if (window.St && window.St.PageFlip) return window.St.PageFlip;
-    if (window.HTMLFlipBook) return window.HTMLFlipBook;
     return null;
   }
 
@@ -55,20 +53,19 @@
         width:600,
         height:800,
         showCover:true,
-        mobileScrollSupport:false,
         rtl:true
       });
       pageFlip.loadFromImages(images);
       console.log("Flipbook initialized.");
     }catch(err){
-      bookEl.innerHTML="<p>خطأ عند تهيئة Flipbook — راجع Console.</p>";
+      bookEl.innerHTML="<p>خطأ عند تهيئة Flipbook.</p>";
       console.error(err);
     }
   }
 
   const ctor = getConstructor();
   if(!ctor){
-    bookEl.innerHTML='<p>خطأ: مكتبة PageFlip غير محمّلة.</p>';
+    bookEl.innerHTML='<p>المكتبة لم تُحمَّل. جرّب تحديث الصفحة.</p>';
     console.error("PageFlip lib not found.");
     return;
   }
@@ -77,7 +74,7 @@
     .then(()=>initFlip(ctor))
     .catch(err=>{
       bookEl.innerHTML="<p>خطأ في تحميل إحدى الصور.</p>";
-      console.error("Image check failed:",err);
+      console.error(err);
     });
 
 })();
