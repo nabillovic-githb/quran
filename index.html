@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Flipbook</title>
+
+<!-- مكتبة Flipbook من CDN (بدون dist) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.min.css">
+<script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
+
+<style>
+  body { background:#f2f2f2; text-align:center; }
+  #book { width:90%; height:600px; margin:40px auto; }
+</style>
+</head>
+
+<body>
+
+<h2>كتابي بتقليب الصفحات</h2>
+<div id="book"></div>
+
+<script>
+const pageFlip = new PageFlip(document.getElementById("book"), {
+    width: 600,
+    height: 800,
+    showCover: true,
+    mobileScrollSupport: false,
+    rtl: true
+});
+
+// ضع روابط صور صفحات الكتاب هنا
+pageFlip.loadFromImages([
+    "pages/1.jpg",
+    "pages/2.jpg",
+    "pages/3.jpg",
+    "pages/4.jpg"
+]);
+</script>
+
+</body>
+</html>
