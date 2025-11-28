@@ -1,3 +1,24 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Flipbook</title>
+
+<!-- مكتبة Flipbook الجديدة من UNPKG (مضمونة وتعمل) -->
+<link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
+<script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
+
+<style>
+  body { background:#f2f2f2; text-align:center; }
+  #book { width:90%; height:600px; margin:40px auto; }
+</style>
+</head>
+
+<body>
+
+<h2>كتابي بتقليب الصفحات</h2>
+<div id="book"></div>
+
 <script>
 (function(){
   let images = [
@@ -62,3 +83,4 @@
 
 })();
 </script>
+
