@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Flipbook</title>
 
-<!-- مكتبة Flipbook من CDN (بدون dist) -->
+<!-- مكتبة Flipbook من CDN -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip/dist/css/page-flip.min.css">
 <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
 
@@ -19,22 +19,68 @@
 <h2>كتابي بتقليب الصفحات</h2>
 <div id="book"></div>
 
+<!-- الكود الجديد -->
 <script>
-const pageFlip = new PageFlip(document.getElementById("book"), {
-    width: 600,
-    height: 800,
-    showCover: true,
-    mobileScrollSupport: false,
-    rtl: true
-});
-
-// ضع روابط صور صفحات الكتاب هنا
-pageFlip.loadFromImages([
+(function(){
+  const images = [
     "pages/1.jpg",
     "pages/2.jpg",
     "pages/3.jpg",
     "pages/4.jpg"
-]);
+  ];
+
+  const bookEl = document.getElementById("book");
+  bookEl.innerHTML = '<p>جاري التحميل… انتظر ثانية</p>';
+
+  function getConstructor(){
+    if (window.PageFlip) return window.PageFlip;
+    if (window.St && window.St.PageFlip) return window.St.PageFlip;
+    if (window.HTMLFlipBook) return window.HTMLFlipBook;
+    return null;
+  }
+
+  function checkImages(list){
+    return Promise.all(list.map(url =>
+      fetch(url, {method:'HEAD'}).then(resp=>{
+        if(!resp.ok) throw new Error(url+" ➜ "+resp.status);
+        return url;
+      })
+    ));
+  }
+
+  function initFlip(ctor){
+    bookEl.innerHTML = "";
+    try{
+      const pageFlip = new ctor(bookEl,{
+        width:600,
+        height:800,
+        showCover:true,
+        mobileScrollSupport:false,
+        rtl:true
+      });
+      pageFlip.loadFromImages(images);
+      console.log("Flipbook initialized.");
+    }catch(err){
+      bookEl.innerHTML="<p>خطأ عند تهيئة Flipbook — راجع Console.</p>";
+      console.error(err);
+    }
+  }
+
+  const ctor = getConstructor();
+  if(!ctor){
+    bookEl.innerHTML='<p>خطأ: مكتبة PageFlip غير محمّلة.</p>';
+    console.error("PageFlip lib not found.");
+    return;
+  }
+
+  checkImages(images)
+    .then(()=>initFlip(ctor))
+    .catch(err=>{
+      bookEl.innerHTML="<p>خطأ في تحميل إحدى الصور.</p>";
+      console.error("Image check failed:",err);
+    });
+
+})();
 </script>
 
 </body>
