@@ -1,111 +1,295 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flipbook - كتاب قابل للتقليب</title>
 
-<title>كتابي القابل للتقليب</title>
+  <!-- مكتبة PageFlip (UNPKG) -->
+  <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
+  <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
-<link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
-<script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
+  <style>
+    :root{
+      --page-bg: #ffffff;
+      --page-shadow: rgba(0,0,0,0.08);
+      --page-radius: 10px;
+      --container-max-width: 1100px;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: "Segoe UI", Tahoma, Arial, "Noto Naskh Arabic", sans-serif;
+      background:#f3f3f3;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      direction: rtl;
+    }
 
-<style>
- body{
-     background:#f2f2f2;
-     margin:0;
-     font-family:Tahoma;
-     text-align:center;
- }
- h2{margin-top:20px;}
+    .wrap{
+      max-width: var(--container-max-width);
+      margin: 18px auto;
+      padding: 8px 16px 60px;
+      box-sizing:border-box;
+    }
 
- #container{
-     display:flex;
-     justify-content:center;
-     gap:20px;
-     margin-top:20px;
- }
+    header{
+      text-align:center;
+      margin:16px 0 8px;
+    }
+    header h1{
+      margin:0;
+      font-size:1.4rem;
+      font-weight:700;
+      color:#222;
+    }
+    .controls{
+      text-align:center;
+      margin:12px 0 18px;
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .btn{
+      display:inline-block;
+      padding:8px 12px;
+      border-radius:8px;
+      background:#0b79d0;
+      color:#fff;
+      text-decoration:none;
+      font-size:0.95rem;
+      border:none;
+      cursor:pointer;
+    }
+    .btn.secondary{
+      background:#6c757d;
+    }
+    .info{
+      color:#444;
+      font-size:0.95rem;
+    }
 
- /* مساحة الكتاب يجب أن تكون ثابتة */
- #book{
-    width:900px;
-    height:1200px;
-    background:white;
-    box-shadow:0 0 20px #aaa;
- }
+    /* حاوية الكتاب: نجعلها متجاوبة */
+    .book-container{
+      width:100%;
+      margin: 6px auto;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:420px;
+      box-sizing:border-box;
+    }
 
- /* الفهرس */
- #toc{
-    width:220px;
-    background:white;
-    padding:15px;
-    border-radius:12px;
-    box-shadow:0 0 10px #bbb;
- }
- #toc h3{text-align:center; margin-bottom:15px;}
- #toc button{
-    width:100%;
-    padding:12px;
-    margin-bottom:10px;
-    border:none;
-    background:#f5f5f5;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:16px;
- }
- #toc button:hover{
-    background:#d0e7ff;
- }
-</style>
+    /* العنصر الفعلي للـ pageflip */
+    #book{
+      width:100%;
+      max-width:900px; /* قيمة افتراضية يمكن تعديلها عبر JS */
+      height: 600px;    /* سيتم التحكم بها أيضاً عبر JS */
+      background: var(--page-bg);
+      border-radius: var(--page-radius);
+      box-shadow: 0 6px 18px var(--page-shadow);
+      overflow:hidden;
+    }
+
+    /* رسائل الخطأ / التحميل في الوسط */
+    .message{
+      padding:18px;
+      color:#333;
+      text-align:center;
+    }
+
+    /* صغر الشاشة: نزّل الارتفاع */
+    @media (max-width:600px){
+      #book{ height:520px; }
+      header h1{ font-size:1.1rem; }
+    }
+    @media (max-width:420px){
+      #book{ height:420px; }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="wrap">
+    <header>
+      <h1>كتابي القابل لتقليب الصفحات</h1>
+      <div class="info">اختر مستواك أو نزّل النسخة PDF إن أردت</div>
+    </header>
 
-<h2>كتابي القابل للتقليب</h2>
-
-<div id="container">
-    
-    <!-- الفهرس -->
-    <div id="toc">
-        <h3>الفهرس</h3>
-        <button onclick="goTo(0)">مصر – الصفحة 1</button>
-        <button onclick="goTo(1)">مصر – الصفحة 2</button>
-        <button onclick="goTo(2)">العراق – الصفحة 3</button>
-        <button onclick="goTo(3)">العراق – الصفحة 4</button>
+    <div class="controls" aria-hidden="false">
+      <!-- زر تنزيل PDF (إن وُجد رابط PDF) -->
+      <a id="downloadPdfBtn" class="btn secondary" href="#" target="_blank" style="display:none;">تحميل PDF</a>
+      <button id="toggleSizeBtn" class="btn">تبديل حجم العرض</button>
+      <button id="reverseBtn" class="btn">عكس ترتيب الصفحات</button>
     </div>
 
-    <!-- الكتاب -->
-    <div id="book"></div>
+    <div class="book-container">
+      <div id="book" aria-live="polite" role="application"></div>
+    </div>
 
-</div>
+    <div id="debug" style="max-width:900px;margin:8px auto;color:#666;font-size:0.9rem"></div>
+  </div>
 
-<script>
-let pages = [
-    "pages/1.jpg",
-    "pages/2.jpg",
-    "pages/3.jpg",
-    "pages/4.jpg"
-];
+  <script>
+  (function(){
+    /**************************************************************************
+     * SETTINGS - عدّل القيم هنا حسب حاجتك:
+     **************************************************************************/
+    // 1) مصفوفة الصور - كل عنصر هو مسار الصورة داخل repo (pages/1.jpg ...).
+    //    رتبها بالترتيب الطبيعي (1,2,3...) ثم اضبط reverseMode أدناه إذا أردت تقليب عربي.
+    let images = [
+      "pages/1.jpg",
+      "pages/2.jpg",
+      "pages/3.jpg",
+      "pages/4.jpg"
+    ];
 
-let flip;
+    // 2) هل تريد أن يكون التقليب "عربي" (غلاف على اليمين)؟ true => سيعكس المصفوفة تلقائياً.
+    let reverseMode = true;
 
-window.onload = function(){
-    flip = new PageFlip(
-        document.getElementById("book"),
-        {
-            width:900,
-            height:1200,
-            size:"stretch",
-            showCover:false,
-            rtl:true,
-            usePortrait:true
-        }
-    );
-    flip.loadFromImages(pages);
-};
+    // 3) رابط تحميل PDF إن وجد (ضع رابط كامل أو اترك فارغاً). 
+    //    يمكنك رفع PDF في الريبو مثلاً public/book.pdf ثم وضع "book.pdf" أو رابط كامل.
+    let pdfDownloadUrl = ""; // مثال: "book.pdf" أو "https://.../book.pdf"
 
-function goTo(page){
-    flip.flip(page); 
-}
-</script>
+    // 4) قيود العرض/الارتفاع الأساسية (تعديل سريع)
+    const MAX_WIDTH_LIMIT = 900;      // أقصى عرض للكتاب px
+    const HEIGHT_RATIO = 1.2;         // ارتفاع = عرض × هذا العامل
+    
+    /**************************************************************************
+     * END SETTINGS
+     **************************************************************************/
 
+    // عناصر مهمة
+    const bookEl = document.getElementById("book");
+    const debugEl = document.getElementById("debug");
+    const downloadBtn = document.getElementById("downloadPdfBtn");
+    const toggleBtn = document.getElementById("toggleSizeBtn");
+    const reverseBtn = document.getElementById("reverseBtn");
+
+    // تهيئة زر التحميل إن وُجد رابط
+    if(pdfDownloadUrl && pdfDownloadUrl.trim() !== ""){
+      downloadBtn.href = pdfDownloadUrl;
+      downloadBtn.style.display = "inline-block";
+    }
+
+    // اظهار رسالة تحميل افتراضية
+    function showMessage(text){
+      bookEl.innerHTML = '<div class="message">' + text + '</div>';
+    }
+
+    // فحص وجود المكتبة
+    function getCtor(){
+      if(window.PageFlip) return window.PageFlip;
+      if(window.St && window.St.PageFlip) return window.St.PageFlip;
+      return null;
+    }
+
+    // Responsive options بناءً على عرض الشاشة
+    function getOptions(){
+      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const calcWidth = Math.min(MAX_WIDTH_LIMIT, Math.floor(vw * 0.92)); // 92% من العرض أو حد الأقصى
+      const calcHeight = Math.floor(calcWidth * HEIGHT_RATIO);
+
+      return {
+        width: calcWidth,
+        height: calcHeight,
+        size: "stretch",
+        showCover: true,
+        rtl: true,
+        mobileScrollSupport: false,
+        usePortrait: false
+      };
+    }
+
+    // تحقق من وجود كل صورة (HEAD requests)
+    function checkImages(list){
+      return Promise.all(list.map(url =>
+        fetch(url, {method: 'HEAD'}).then(resp=>{
+          if(!resp.ok) throw new Error(url + " ➜ " + resp.status);
+          return url;
+        })
+      ));
+    }
+
+    // تهيئة الFlipbook
+    function initFlip(ctor, imgList){
+      bookEl.innerHTML = ""; // ننظف المكان
+      const opts = getOptions();
+      try{
+        const flip = new ctor(bookEl, opts);
+        flip.loadFromImages(imgList);
+        window._myFlip = flip; // مفيد للdebug
+        debugEl.textContent = "تم التحميل: عرض=" + opts.width + "px × ارتفاع=" + opts.height + "px";
+        // حاول تحديث الأبعاد عند تغيير النافذة (بعض إصدارات المكتبة قد لا تدعم)
+        window.addEventListener('resize', function(){
+          const newOpts = getOptions();
+          // بعض النسخ لها updateFromOptions - نجربه إن وُجد
+          try{ flip.updateFromOptions ? flip.updateFromOptions(newOpts) : null; }catch(e){}
+        });
+      }catch(err){
+        bookEl.innerHTML = '<div class="message">حدث خطأ عند تهيئة الكتاب — افتح Console للمزيد.</div>';
+        console.error("initFlip error:", err);
+      }
+    }
+
+    // دوال تحكم سريعة للأزرار
+    toggleBtn.addEventListener('click', function(){
+      // تبديل الحد الأقصى للعرض لتكبير/تصغير سريع
+      if(document.documentElement.style.getPropertyValue('--container-max-width') === '1100px'){
+        document.documentElement.style.setProperty('--container-max-width','760px');
+        this.textContent = 'تكبير العرض';
+      } else {
+        document.documentElement.style.setProperty('--container-max-width','1100px');
+        this.textContent = 'تبديل حجم العرض';
+      }
+    });
+
+    reverseBtn.addEventListener('click', function(){
+      reverseMode = !reverseMode;
+      this.textContent = reverseMode ? 'إلغاء عكس الصفحات' : 'عكس ترتيب الصفحات';
+      // لإعادة تحميل الكتاب مع ترتيب جديد:
+      start(); // يعيد الفحص وإعادة التهيئة
+    });
+
+    // نقطة الدخول: تفحص المكتبة، الصور، ثم تهيئة
+    function start(){
+      // رسالة تحميل
+      showMessage('جاري التحميل…');
+
+      // التحقق من المكتبة أولاً
+      const ctor = getCtor();
+      if(!ctor){
+        bookEl.innerHTML = '<div class="message">خطأ: مكتبة PageFlip غير محمّلة. تأكد من الإنترنت أو روابط المكتبة.</div>';
+        console.error("PageFlip lib not found. window.PageFlip is undefined.");
+        return;
+      }
+
+      // جهز قائمة الصور (نسخة لتفادي تغيير المصدر)
+      let imgs = images.slice(0);
+
+      // إذا مطلوب عكس الترتيب (للتقليب العربي)
+      if(reverseMode){
+        imgs = imgs.reverse();
+      }
+
+      // تأكد من وجود الصور عبر HEAD
+      checkImages(imgs)
+        .then(()=> initFlip(ctor, imgs))
+        .catch(err=>{
+          console.error("Image check failed:", err);
+          bookEl.innerHTML = '<div class="message">خطأ: إحدى الصور غير متوفرة أو مسارها غير صحيح. افتح الـ Console لرؤية المسار.</div>';
+          debugEl.textContent = "خطأ بفحص الصور: " + err.message;
+        });
+    }
+
+    // بدء التشغيل
+    start();
+
+    // مجرد hint للمطور: افتح window._myFlip في Console للتعديل أو الفحص
+    console.info("Flipbook script loaded. window._myFlip will reference the instance after init.");
+
+  })();
+  </script>
 </body>
 </html>
