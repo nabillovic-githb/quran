@@ -21,7 +21,8 @@
 
 <script>
 (function(){
-  const images = [
+  // ----- عدّل هنا أسماء الصور إن احتجت -----
+  let images = [
     "pages/1.jpg",
     "pages/2.jpg",
     "pages/3.jpg",
@@ -31,55 +32,98 @@
   const bookEl = document.getElementById("book");
   bookEl.innerHTML = '<p>جاري التحميل…</p>';
 
+  // ---- إعدادات استجابة وحجم ديناميكي ----
+  function getOptions(){
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    // نختار حجم أقصى للصفحة بناءً على عرض الشاشة
+    const maxWidth = Math.min(900, Math.floor(vw * 0.9)); // لا تتعدى 900px أو 90% من العرض
+    const maxHeight = Math.floor(maxWidth * 1.2); // نسبية: ارتفاع = 1.2 × العرض (تعديل إذا تريد)
+    return {
+      width: Math.min(800, maxWidth),
+      height: Math.min(1100, maxHeight),
+      size: "stretch",           // يجعل الكتاب يتكيّف ضمن الحاوية
+      showCover: true,
+      rtl: true,                 // واجهة من اليمين لليسار (مهم للعربية)
+      mobileScrollSupport: false,
+      usePortrait: false
+    };
+  }
+
+  // تحقّق من وجود المكتبة
   function getConstructor(){
     if (window.PageFlip) return window.PageFlip;
     if (window.St && window.St.PageFlip) return window.St.PageFlip;
     return null;
   }
 
+  // نتأكد أن الصور موجودة
   function checkImages(list){
     return Promise.all(list.map(url =>
       fetch(url, {method:'HEAD'}).then(resp=>{
-        if(!resp.ok) throw new Error(url+" ➜ "+resp.status);
+        if(!resp.ok) throw new Error(url + " ➜ " + resp.status);
         return url;
       })
     ));
   }
 
-  function initFlip(ctor){
+  // إذا واجهنا RTL والصفحات تظهر بالمقلوب، نعكس المصفوفة
+  function ensureOrderForRtl(list){
+    // جرّب أولاً: بالنسبة لـ PageFlip مع rtl:true، غالبًا الترتيب الطبيعي يعمل.
+    // إذا لاحظت أن أول صفحة تظهر على اليسار بدل اليمين، قم بعكس المصفوفة.
+    // هنا نتحقق تلقائيًا: إذا كان اسم أول ملف هو cover (مثلاً) يمكن تعديل القاعدة.
+    // أبسط حل: عكس المصفوفة تلقائياً — لكن افعل ذلك فقط إن لزم:
+    // return list.reverse();
+
+    // الافتراضي: لا نغير
+    return list;
+  }
+
+  // تهيئة الفليب
+  function initFlip(ctor, opts, imgList){
     bookEl.innerHTML = "";
     try{
-      const pageFlip = new ctor(bookEl,{
-        width:600,
-        height:800,
-        showCover:true,
-        rtl:true
+      const pageFlip = new ctor(bookEl, opts);
+      pageFlip.loadFromImages(imgList);
+      console.log("Flipbook initialized with options:", opts);
+      // Expose for debugging (في Console تقدر الوصول)
+      window._myFlip = pageFlip;
+      // إعادة ضبط عند تغيير حجم النافذة (responsive)
+      window.addEventListener('resize', function(){
+        const newOpts = getOptions();
+        try {
+          pageFlip.updateFromOptions ? pageFlip.updateFromOptions(newOpts) : null;
+        } catch(e){ /* بعض النسخ لا تدعم updateFromOptions */ }
       });
-      pageFlip.loadFromImages(images);
-      console.log("Flipbook initialized.");
     }catch(err){
-      bookEl.innerHTML="<p>خطأ عند تهيئة Flipbook.</p>";
+      bookEl.innerHTML = "<p>خطأ عند تهيئة Flipbook — راجع Console.</p>";
       console.error(err);
     }
   }
 
+  // ابدأ
   const ctor = getConstructor();
   if(!ctor){
-    bookEl.innerHTML='<p>المكتبة لم تُحمَّل. جرّب تحديث الصفحة.</p>';
+    bookEl.innerHTML = '<p>المكتبة لم تُحمَّل. جرّب تحديث الصفحة.</p>';
     console.error("PageFlip lib not found.");
     return;
   }
 
+  // ضبط الترتيب (إن أردت عكسه يدوياً: images = images.reverse();)
+  images = ensureOrderForRtl(images);
+
+  // تحقق من الصور ثم ابدأ
   checkImages(images)
-    .then(()=>initFlip(ctor))
+    .then(()=> {
+      const opts = getOptions();
+      initFlip(ctor, opts, images);
+    })
     .catch(err=>{
-      bookEl.innerHTML="<p>خطأ في تحميل إحدى الصور.</p>";
-      console.error(err);
+      bookEl.innerHTML = "<p>خطأ في تحميل إحدى الصور. افتح Console لرؤية التفاصيل.</p>";
+      console.error("Image check failed:", err);
     });
 
 })();
 </script>
 
-</body>
-</html>
+
 
