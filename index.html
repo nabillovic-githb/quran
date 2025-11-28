@@ -1,131 +1,295 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<title>Flipbook</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flipbook - كتاب قابل للتقليب</title>
 
-<!-- مكتبة Flipbook الجديدة من UNPKG (مضمونة وتعمل) -->
-<link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
-<script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
+  <!-- مكتبة PageFlip (UNPKG) -->
+  <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
+  <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
-<style>
-  body { background:#f2f2f2; text-align:center; }
-  #book { width:90%; height:500px; margin:100px auto; }
-</style>
-</head>
-
-<body>
-
-<h2>كتابي بتقليب الصفحات</h2>
-<div id="book"></div>
-
-<script>
-(function(){
-  // ----- عدّل هنا أسماء الصور إن احتجت -----
-  let images = [
-    "pages/1.jpg",
-    "pages/2.jpg",
-    "pages/3.jpg",
-    "pages/4.jpg"
-  ];
-
-  const bookEl = document.getElementById("book");
-  bookEl.innerHTML = '<p>جاري التحميل…</p>';
-
-  // ---- إعدادات استجابة وحجم ديناميكي ----
-  function getOptions(){
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    // نختار حجم أقصى للصفحة بناءً على عرض الشاشة
-    const maxWidth = Math.min(900, Math.floor(vw * 0.9)); // لا تتعدى 900px أو 90% من العرض
-    const maxHeight = Math.floor(maxWidth * 1.2); // نسبية: ارتفاع = 1.2 × العرض (تعديل إذا تريد)
-    return {
-      width: Math.min(800, maxWidth),
-      height: Math.min(1100, maxHeight),
-      size: "stretch",           // يجعل الكتاب يتكيّف ضمن الحاوية
-      showCover: true,
-      rtl: true,                 // واجهة من اليمين لليسار (مهم للعربية)
-      mobileScrollSupport: false,
-      usePortrait: false
-    };
-  }
-
-  // تحقّق من وجود المكتبة
-  function getConstructor(){
-    if (window.PageFlip) return window.PageFlip;
-    if (window.St && window.St.PageFlip) return window.St.PageFlip;
-    return null;
-  }
-
-  // نتأكد أن الصور موجودة
-  function checkImages(list){
-    return Promise.all(list.map(url =>
-      fetch(url, {method:'HEAD'}).then(resp=>{
-        if(!resp.ok) throw new Error(url + " ➜ " + resp.status);
-        return url;
-      })
-    ));
-  }
-
-  // إذا واجهنا RTL والصفحات تظهر بالمقلوب، نعكس المصفوفة
-  function ensureOrderForRtl(list){
-    // جرّب أولاً: بالنسبة لـ PageFlip مع rtl:true، غالبًا الترتيب الطبيعي يعمل.
-    // إذا لاحظت أن أول صفحة تظهر على اليسار بدل اليمين، قم بعكس المصفوفة.
-    // هنا نتحقق تلقائيًا: إذا كان اسم أول ملف هو cover (مثلاً) يمكن تعديل القاعدة.
-    // أبسط حل: عكس المصفوفة تلقائياً — لكن افعل ذلك فقط إن لزم:
-    // return list.reverse();
-
-    // الافتراضي: لا نغير
-    return list;
-  }
-
-  // تهيئة الفليب
-  function initFlip(ctor, opts, imgList){
-    bookEl.innerHTML = "";
-    try{
-      const pageFlip = new ctor(bookEl, opts);
-      pageFlip.loadFromImages(imgList);
-      console.log("Flipbook initialized with options:", opts);
-      // Expose for debugging (في Console تقدر الوصول)
-      window._myFlip = pageFlip;
-      // إعادة ضبط عند تغيير حجم النافذة (responsive)
-      window.addEventListener('resize', function(){
-        const newOpts = getOptions();
-        try {
-          pageFlip.updateFromOptions ? pageFlip.updateFromOptions(newOpts) : null;
-        } catch(e){ /* بعض النسخ لا تدعم updateFromOptions */ }
-      });
-    }catch(err){
-      bookEl.innerHTML = "<p>خطأ عند تهيئة Flipbook — راجع Console.</p>";
-      console.error(err);
+  <style>
+    :root{
+      --page-bg: #ffffff;
+      --page-shadow: rgba(0,0,0,0.08);
+      --page-radius: 10px;
+      --container-max-width: 1100px;
     }
-  }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: "Segoe UI", Tahoma, Arial, "Noto Naskh Arabic", sans-serif;
+      background:#f3f3f3;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      direction: rtl;
+    }
 
-  // ابدأ
-  const ctor = getConstructor();
-  if(!ctor){
-    bookEl.innerHTML = '<p>المكتبة لم تُحمَّل. جرّب تحديث الصفحة.</p>';
-    console.error("PageFlip lib not found.");
-    return;
-  }
+    .wrap{
+      max-width: var(--container-max-width);
+      margin: 18px auto;
+      padding: 8px 16px 60px;
+      box-sizing:border-box;
+    }
 
-  // ضبط الترتيب (إن أردت عكسه يدوياً: images = images.reverse();)
-  images = ensureOrderForRtl(images);
+    header{
+      text-align:center;
+      margin:16px 0 8px;
+    }
+    header h1{
+      margin:0;
+      font-size:1.4rem;
+      font-weight:700;
+      color:#222;
+    }
+    .controls{
+      text-align:center;
+      margin:12px 0 18px;
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .btn{
+      display:inline-block;
+      padding:8px 12px;
+      border-radius:8px;
+      background:#0b79d0;
+      color:#fff;
+      text-decoration:none;
+      font-size:0.95rem;
+      border:none;
+      cursor:pointer;
+    }
+    .btn.secondary{
+      background:#6c757d;
+    }
+    .info{
+      color:#444;
+      font-size:0.95rem;
+    }
 
-  // تحقق من الصور ثم ابدأ
-  checkImages(images)
-    .then(()=> {
+    /* حاوية الكتاب: نجعلها متجاوبة */
+    .book-container{
+      width:100%;
+      margin: 6px auto;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:420px;
+      box-sizing:border-box;
+    }
+
+    /* العنصر الفعلي للـ pageflip */
+    #book{
+      width:100%;
+      max-width:900px; /* قيمة افتراضية يمكن تعديلها عبر JS */
+      height: 600px;    /* سيتم التحكم بها أيضاً عبر JS */
+      background: var(--page-bg);
+      border-radius: var(--page-radius);
+      box-shadow: 0 6px 18px var(--page-shadow);
+      overflow:hidden;
+    }
+
+    /* رسائل الخطأ / التحميل في الوسط */
+    .message{
+      padding:18px;
+      color:#333;
+      text-align:center;
+    }
+
+    /* صغر الشاشة: نزّل الارتفاع */
+    @media (max-width:600px){
+      #book{ height:520px; }
+      header h1{ font-size:1.1rem; }
+    }
+    @media (max-width:420px){
+      #book{ height:420px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>كتابي القابل لتقليب الصفحات</h1>
+      <div class="info">اختر مستواك أو نزّل النسخة PDF إن أردت</div>
+    </header>
+
+    <div class="controls" aria-hidden="false">
+      <!-- زر تنزيل PDF (إن وُجد رابط PDF) -->
+      <a id="downloadPdfBtn" class="btn secondary" href="#" target="_blank" style="display:none;">تحميل PDF</a>
+      <button id="toggleSizeBtn" class="btn">تبديل حجم العرض</button>
+      <button id="reverseBtn" class="btn">عكس ترتيب الصفحات</button>
+    </div>
+
+    <div class="book-container">
+      <div id="book" aria-live="polite" role="application"></div>
+    </div>
+
+    <div id="debug" style="max-width:900px;margin:8px auto;color:#666;font-size:0.9rem"></div>
+  </div>
+
+  <script>
+  (function(){
+    /**************************************************************************
+     * SETTINGS - عدّل القيم هنا حسب حاجتك:
+     **************************************************************************/
+    // 1) مصفوفة الصور - كل عنصر هو مسار الصورة داخل repo (pages/1.jpg ...).
+    //    رتبها بالترتيب الطبيعي (1,2,3...) ثم اضبط reverseMode أدناه إذا أردت تقليب عربي.
+    let images = [
+      "pages/1.jpg",
+      "pages/2.jpg",
+      "pages/3.jpg",
+      "pages/4.jpg"
+    ];
+
+    // 2) هل تريد أن يكون التقليب "عربي" (غلاف على اليمين)؟ true => سيعكس المصفوفة تلقائياً.
+    let reverseMode = true;
+
+    // 3) رابط تحميل PDF إن وجد (ضع رابط كامل أو اترك فارغاً). 
+    //    يمكنك رفع PDF في الريبو مثلاً public/book.pdf ثم وضع "book.pdf" أو رابط كامل.
+    let pdfDownloadUrl = ""; // مثال: "book.pdf" أو "https://.../book.pdf"
+
+    // 4) قيود العرض/الارتفاع الأساسية (تعديل سريع)
+    const MAX_WIDTH_LIMIT = 900;      // أقصى عرض للكتاب px
+    const HEIGHT_RATIO = 1.2;         // ارتفاع = عرض × هذا العامل
+    
+    /**************************************************************************
+     * END SETTINGS
+     **************************************************************************/
+
+    // عناصر مهمة
+    const bookEl = document.getElementById("book");
+    const debugEl = document.getElementById("debug");
+    const downloadBtn = document.getElementById("downloadPdfBtn");
+    const toggleBtn = document.getElementById("toggleSizeBtn");
+    const reverseBtn = document.getElementById("reverseBtn");
+
+    // تهيئة زر التحميل إن وُجد رابط
+    if(pdfDownloadUrl && pdfDownloadUrl.trim() !== ""){
+      downloadBtn.href = pdfDownloadUrl;
+      downloadBtn.style.display = "inline-block";
+    }
+
+    // اظهار رسالة تحميل افتراضية
+    function showMessage(text){
+      bookEl.innerHTML = '<div class="message">' + text + '</div>';
+    }
+
+    // فحص وجود المكتبة
+    function getCtor(){
+      if(window.PageFlip) return window.PageFlip;
+      if(window.St && window.St.PageFlip) return window.St.PageFlip;
+      return null;
+    }
+
+    // Responsive options بناءً على عرض الشاشة
+    function getOptions(){
+      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const calcWidth = Math.min(MAX_WIDTH_LIMIT, Math.floor(vw * 0.92)); // 92% من العرض أو حد الأقصى
+      const calcHeight = Math.floor(calcWidth * HEIGHT_RATIO);
+
+      return {
+        width: calcWidth,
+        height: calcHeight,
+        size: "stretch",
+        showCover: true,
+        rtl: true,
+        mobileScrollSupport: false,
+        usePortrait: false
+      };
+    }
+
+    // تحقق من وجود كل صورة (HEAD requests)
+    function checkImages(list){
+      return Promise.all(list.map(url =>
+        fetch(url, {method: 'HEAD'}).then(resp=>{
+          if(!resp.ok) throw new Error(url + " ➜ " + resp.status);
+          return url;
+        })
+      ));
+    }
+
+    // تهيئة الFlipbook
+    function initFlip(ctor, imgList){
+      bookEl.innerHTML = ""; // ننظف المكان
       const opts = getOptions();
-      initFlip(ctor, opts, images);
-    })
-    .catch(err=>{
-      bookEl.innerHTML = "<p>خطأ في تحميل إحدى الصور. افتح Console لرؤية التفاصيل.</p>";
-      console.error("Image check failed:", err);
+      try{
+        const flip = new ctor(bookEl, opts);
+        flip.loadFromImages(imgList);
+        window._myFlip = flip; // مفيد للdebug
+        debugEl.textContent = "تم التحميل: عرض=" + opts.width + "px × ارتفاع=" + opts.height + "px";
+        // حاول تحديث الأبعاد عند تغيير النافذة (بعض إصدارات المكتبة قد لا تدعم)
+        window.addEventListener('resize', function(){
+          const newOpts = getOptions();
+          // بعض النسخ لها updateFromOptions - نجربه إن وُجد
+          try{ flip.updateFromOptions ? flip.updateFromOptions(newOpts) : null; }catch(e){}
+        });
+      }catch(err){
+        bookEl.innerHTML = '<div class="message">حدث خطأ عند تهيئة الكتاب — افتح Console للمزيد.</div>';
+        console.error("initFlip error:", err);
+      }
+    }
+
+    // دوال تحكم سريعة للأزرار
+    toggleBtn.addEventListener('click', function(){
+      // تبديل الحد الأقصى للعرض لتكبير/تصغير سريع
+      if(document.documentElement.style.getPropertyValue('--container-max-width') === '1100px'){
+        document.documentElement.style.setProperty('--container-max-width','760px');
+        this.textContent = 'تكبير العرض';
+      } else {
+        document.documentElement.style.setProperty('--container-max-width','1100px');
+        this.textContent = 'تبديل حجم العرض';
+      }
     });
 
-})();
-</script>
+    reverseBtn.addEventListener('click', function(){
+      reverseMode = !reverseMode;
+      this.textContent = reverseMode ? 'إلغاء عكس الصفحات' : 'عكس ترتيب الصفحات';
+      // لإعادة تحميل الكتاب مع ترتيب جديد:
+      start(); // يعيد الفحص وإعادة التهيئة
+    });
 
+    // نقطة الدخول: تفحص المكتبة، الصور، ثم تهيئة
+    function start(){
+      // رسالة تحميل
+      showMessage('جاري التحميل…');
 
+      // التحقق من المكتبة أولاً
+      const ctor = getCtor();
+      if(!ctor){
+        bookEl.innerHTML = '<div class="message">خطأ: مكتبة PageFlip غير محمّلة. تأكد من الإنترنت أو روابط المكتبة.</div>';
+        console.error("PageFlip lib not found. window.PageFlip is undefined.");
+        return;
+      }
 
+      // جهز قائمة الصور (نسخة لتفادي تغيير المصدر)
+      let imgs = images.slice(0);
 
+      // إذا مطلوب عكس الترتيب (للتقليب العربي)
+      if(reverseMode){
+        imgs = imgs.reverse();
+      }
 
+      // تأكد من وجود الصور عبر HEAD
+      checkImages(imgs)
+        .then(()=> initFlip(ctor, imgs))
+        .catch(err=>{
+          console.error("Image check failed:", err);
+          bookEl.innerHTML = '<div class="message">خطأ: إحدى الصور غير متوفرة أو مسارها غير صحيح. افتح الـ Console لرؤية المسار.</div>';
+          debugEl.textContent = "خطأ بفحص الصور: " + err.message;
+        });
+    }
+
+    // بدء التشغيل
+    start();
+
+    // مجرد hint للمطور: افتح window._myFlip في Console للتعديل أو الفحص
+    console.info("Flipbook script loaded. window._myFlip will reference the instance after init.");
+
+  })();
+  </script>
+</body>
+</html>
