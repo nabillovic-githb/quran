@@ -21,15 +21,12 @@
 
 <script>
 (function(){
-  let images = [
+  const images = [
     "pages/1.jpg",
     "pages/2.jpg",
     "pages/3.jpg",
     "pages/4.jpg"
   ];
-
-  // ✳️ عكس الترتيب ليعمل التقليب من اليمين إلى اليسار بالعربية
-  images = images.reverse();
 
   const bookEl = document.getElementById("book");
   bookEl.innerHTML = '<p>جاري التحميل…</p>';
@@ -43,7 +40,7 @@
   function checkImages(list){
     return Promise.all(list.map(url =>
       fetch(url, {method:'HEAD'}).then(resp=>{
-        if(!resp.ok) throw new Error(url + " ➜ " + resp.status);
+        if(!resp.ok) throw new Error(url+" ➜ "+resp.status);
         return url;
       })
     ));
@@ -56,11 +53,10 @@
         width:600,
         height:800,
         showCover:true,
-        rtl:true   // تأكد أن rtl مفعل
+        rtl:true
       });
       pageFlip.loadFromImages(images);
-      window._myFlip = pageFlip;
-      console.log("Flipbook initialized (RTL).");
+      console.log("Flipbook initialized.");
     }catch(err){
       bookEl.innerHTML="<p>خطأ عند تهيئة Flipbook.</p>";
       console.error(err);
@@ -69,18 +65,20 @@
 
   const ctor = getConstructor();
   if(!ctor){
-    bookEl.innerHTML = '<p>المكتبة لم تُحمَّل. جرّب تحديث الصفحة.</p>';
+    bookEl.innerHTML='<p>المكتبة لم تُحمَّل. جرّب تحديث الصفحة.</p>';
     console.error("PageFlip lib not found.");
     return;
   }
 
   checkImages(images)
-    .then(()=> initFlip(ctor))
+    .then(()=>initFlip(ctor))
     .catch(err=>{
-      bookEl.innerHTML = "<p>خطأ في تحميل إحدى الصور.</p>";
+      bookEl.innerHTML="<p>خطأ في تحميل إحدى الصور.</p>";
       console.error(err);
     });
 
 })();
 </script>
 
+</body>
+</html>
