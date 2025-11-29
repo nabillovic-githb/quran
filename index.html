@@ -10,68 +10,24 @@
 <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
 <style>
-  :root{
-    --container-max-width:1100px;
-  }
+  :root{ --container-max-width:1100px; }
   html,body{ margin:0; padding:0; font-family:Tahoma, "Segoe UI", Arial; background:#f3f3f3; direction:rtl; }
   .wrap{ max-width:var(--container-max-width); margin:18px auto; padding:10px; box-sizing:border-box; }
-
   header{ text-align:center; margin-bottom:10px; }
   header h1{ margin:0; font-size:1.4rem; }
-
   .controls{ text-align:center; margin:10px 0 18px; }
-
   .book-container{ display:flex; justify-content:center; align-items:flex-start; gap:20px; }
-
-  /* Book (pageflip) */
-  #book{
-    width:100%;
-    max-width:900px;
-    height:700px;
-    background:#fff;
-    border-radius:10px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-    overflow:hidden;
-  }
-
-  /* TOC (الفهرس) ثابت على اليمين، خارج منطقة الكتاب */
-  .toc {
-    width:220px;
-    max-height:80vh;
-    background:#fff;
-    border-radius:12px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.12);
-    padding:12px;
-    box-sizing:border-box;
-    overflow:auto;
-    position:sticky;
-    top:20px;
-    align-self:flex-start;
-  }
+  #book{ width:100%; max-width:900px; height:700px; background:#fff; border-radius:10px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow:hidden; }
+  .toc { width:260px; max-height:80vh; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.12); padding:12px; box-sizing:border-box; overflow:auto; position:sticky; top:20px; align-self:flex-start; }
   .toc h3{ margin:4px 0 10px; text-align:center; }
-  .toc .item{
-    background:#f7f8fb;
-    border-radius:8px;
-    padding:10px;
-    margin-bottom:10px;
-    cursor:pointer;
-    text-align:right;
-    transition:background .15s, transform .08s;
-    font-size:15px;
-  }
+  .toc .item{ background:#f7f8fb; border-radius:8px; padding:10px; margin-bottom:8px; cursor:pointer; text-align:right; transition:background .15s, transform .08s; font-size:15px; }
   .toc .item:hover{ background:#e6f0ff; transform:translateX(-4px); }
-
-  /* responsive: hide toc on narrow screens */
   @media (max-width:920px){
     .book-container{ flex-direction:column; align-items:center; }
     .toc{ position:relative; width:90%; max-width:420px; margin-bottom:10px; top:auto; }
     #book{ height:560px; }
   }
-  @media (max-width:480px){
-    #book{ height:420px; }
-  }
-
-  /* message style */
+  @media (max-width:480px){ #book{ height:420px; } }
   .message{ padding:18px; text-align:center; color:#333; }
   #debug{ color:#666; font-size:0.9rem; max-width:900px; margin:8px auto; text-align:center;}
 </style>
@@ -80,24 +36,19 @@
   <div class="wrap">
     <header>
       <h1>كتابي القابل لتقليب الصفحات</h1>
-      <div class="info" style="color:#444">اختبر الفهرس → اضغط على عنوان لتنتقل للصفحة</div>
+      <div class="info" style="color:#444">الفهرس يسحب أسماء السور من ملف JSON. اضغط على اسم لتنتقل للصفحة.</div>
     </header>
 
     <div class="controls">
-      <button id="toggleSizeBtn" class="btn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer">تبديل حجم العرض</button>
-      <button id="reverseBtn" class="btn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer;margin-left:8px">عكس ترتيب الصفحات</button>
+      <button id="toggleSizeBtn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer">تبديل حجم العرض</button>
+      <button id="reverseBtn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer;margin-left:8px">عكس ترتيب الصفحات</button>
     </div>
 
     <div class="book-container">
-      <!-- فهرس (آمن خارج العنصر #book) -->
       <div class="toc" id="toc" aria-label="فهرس الكتاب">
         <h3>الفهرس</h3>
-        <div id="tocList">
-          <!-- سيتم بناؤه آليا -->
-        </div>
+        <div id="tocList"></div>
       </div>
-
-      <!-- هنا يوضع الكتاب (PageFlip) -->
       <div id="book" role="application" aria-live="polite"></div>
     </div>
 
@@ -105,23 +56,13 @@
   </div>
 
 <script>
-(function(){
-  /*********** إعدادات (عدّل هنا) ***********/
-  let images = [
-    "pages/1.jpg", // مصر
-    "pages/2.jpg", // مصر
-    "pages/3.jpg", // العراق
-    "pages/4.jpg"  // العراق
-  ];
-  // عناوين الفهرس الموافقة للصور أعلاه (يمكنك تعديلها)
-  const titles = [
-    "مصر – الصفحة 1",
-    "مصر – الصفحة 2",
-    "العراق – الصفحة 3",
-    "العراق – الصفحة 4"
-  ];
+(async function(){
 
-  let reverseMode = true; // true يعني عكس المصفوفة لإظهار الغلاف على اليمين
+  /*********** إعدادات ***********/
+  const LAST_PAGE = 685;                     // عدّل إن تغيّر عدد الصفحات
+  const IMAGE_TEMPLATE = "pages/{page}.png"; // قالب اسم الصورة
+  const BOOKMARKS_JSON = "data/bookmarks.json"; // مسار ملف الفهرس في الريبو
+  let reverseMode = true;                    // true لعرض الغلاف على اليمين (PDF عربي)
   const MAX_WIDTH_LIMIT = 900;
   const HEIGHT_RATIO = 1.2;
 
@@ -132,136 +73,118 @@
   const toggleBtn = document.getElementById("toggleSizeBtn");
   const reverseBtn = document.getElementById("reverseBtn");
 
-  /*********** متغيرات حالة ***********/
-  let currentImgs = [];          // مصفوفة الصور بعد (reverseMode) الجارية
-  let flipInstance = null;       // مرجع PageFlip بعد التهيئة
-  let pendingGoto = null;        // إن ضغط المستخدم قبل تهيئة flip
-
   /*********** وظائف مساعدة ***********/
-  function getCtor(){
-    if(window.PageFlip) return window.PageFlip;
-    if(window.St && window.St.PageFlip) return window.St.PageFlip;
-    return null;
-  }
-  function showMessage(text){
-    bookEl.innerHTML = '<div class="message">'+text+'</div>';
-  }
+  function getCtor(){ return window.PageFlip || (window.St && window.St.PageFlip) || null; }
+  function showMessage(text){ bookEl.innerHTML = '<div class="message">'+text+'</div>'; }
 
   function getOptions(){
     const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     const width = Math.min(MAX_WIDTH_LIMIT, Math.floor(vw * 0.92));
     const height = Math.floor(width * HEIGHT_RATIO);
-    return {
-      width: width,
-      height: height,
-      size: "stretch",
-      showCover: true,
-      rtl: true,
-      mobileScrollSupport: false,
-      usePortrait: false
-    };
+    return { width, height, size: "stretch", showCover: true, rtl: true, mobileScrollSupport: false, usePortrait: false };
   }
 
-  function checkImages(list){
-    return Promise.all(list.map(url =>
-      fetch(url, {method:'HEAD'}).then(resp=>{
-        if(!resp.ok) throw new Error(url + " ➜ " + resp.status);
-        return url;
-      })
-    ));
+  // توليد قائمة المسارات تلقائياً (1..LAST_PAGE)
+  function buildImagesList(){
+    const arr = [];
+    for(let p=1; p<=LAST_PAGE; p++){
+      arr.push(IMAGE_TEMPLATE.replace("{page}", p));
+    }
+    return arr;
   }
 
-  /*********** بناء الفهرس (TOC) ***********/
-  function buildToc(list){
+  // تحميل الفهرس (bookmarks.json) من الريبو
+  async function loadBookmarks(){
+    try{
+      const resp = await fetch(BOOKMARKS_JSON);
+      if(!resp.ok) throw new Error("فشل تحميل bookmarks.json: " + resp.status);
+      const arr = await resp.json();
+      return Array.isArray(arr) ? arr.filter(it=>it && it.title && Number(it.page)>0).map(it=>({ title: String(it.title), page: Number(it.page) })) : [];
+    }catch(err){
+      console.warn("loadBookmarks:", err);
+      return [];
+    }
+  }
+
+  // استخراج رقم الصفحة من رابط الصورة (يفترض وجود رقم قبل الامتداد)
+  function extractPageNumberFromUrl(url){
+    const m = url.match(/(\d+)(?=\.\w+$)/);
+    return m ? Number(m[1]) : null;
+  }
+
+  // إنشاء الفهرس داخل الشريط الجانبي بناءً على bookmarks (أولوية) أو عناوين افتراضية
+  function buildToc(bookmarks, currentImgs){
     tocListEl.innerHTML = "";
-    // استخدم عناوين من المصفوفة titles إن كانت متاحة، وإلا اعتمد "صفحة x"
-    list.forEach((url, i) => {
-      const btn = document.createElement("div");
-      btn.className = "item";
-      btn.tabIndex = 0;
-      const label = titles[i] ? titles[i] : ("الصفحة " + (i+1));
-      btn.textContent = label;
-      btn.addEventListener('click', function(){ goToPage(i); });
-      btn.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToPage(i); }
+    if(bookmarks && bookmarks.length){
+      bookmarks.forEach((bm, idx)=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        div.tabIndex = 0;
+        div.textContent = bm.title;
+        div.addEventListener('click', ()=> {
+          // نحول رقم صفحة PDF إلى index داخل currentImgs
+          const targetPage = Number(bm.page);
+          // نبحث عن الصورة التي تحمل نفس رقم الصفحة
+          let foundIndex = -1;
+          for(let i=0;i<currentImgs.length;i++){
+            const pn = extractPageNumberFromUrl(currentImgs[i]);
+            if(pn === targetPage){ foundIndex = i; break; }
+          }
+          if(foundIndex >= 0) goToPageByIndex(foundIndex);
+          else alert("لم يتم العثور على صورة مطابقة لصفحة: " + targetPage);
+        });
+        div.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); div.click(); } });
+        tocListEl.appendChild(div);
       });
-      tocListEl.appendChild(btn);
-    });
-  }
-
-  /*********** دالة الانتقال لصفحة معينة ***********/
-  function goToPage(index){
-    // index هنا بالنسبة لترتيب الفهرس (0-based)
-    if(!flipInstance){
-      // إذا ضغط المستخدم قبل تهيئة flip، خزّنه وسيتم تنفيذه بعد التهيئة
-      pendingGoto = index;
-      return;
-    }
-
-    // إذا كُنّا قد عكسنا المصفوفة لعرض RTL، نحتاج إلى تحويل الفهرس
-    //  - currentImgs هي المصفوفة التي استخدمت بالفعل في loadFromImages()
-    //  - index من الفهرس (0..n-1) يجب تحويله إلى realIndex داخل currentImgs
-    let realIndex;
-    // currentImgs length = n
-    if(reverseMode){
-      // عندما تكون currentImgs = images.reverse()، ونريد أن يختار المستخدم العنصر i من اليسار إلى اليمين في الفهرس
-      // يبقى التحويل: realIndex = n - 1 - i
-      realIndex = currentImgs.length - 1 - index;
     } else {
-      realIndex = index;
-    }
-
-    // الآن نحاول استعمال أي دالة متاحة في الـ instance
-    try {
-      if(typeof flipInstance.flip === 'function'){
-        flipInstance.flip(realIndex);
-        return;
-      }
-      if(typeof flipInstance.goToPage === 'function'){
-        flipInstance.goToPage(realIndex);
-        return;
-      }
-      if(typeof flipInstance.turnTo === 'function'){
-        flipInstance.turnTo(realIndex);
-        return;
-      }
-      // كحل أخير إن لم يوجد أي من الدوال السابقة
-      console.warn("لا توجد دوال تنقل معروفة على instance. افحص window._myFlip في Console.");
-    } catch(err){
-      console.error("goToPage error:", err);
+      // إن لم يوجد bookmarks، نعرض عناوين افتراضية "الصفحة N"
+      currentImgs.forEach((url, i)=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        div.tabIndex = 0;
+        div.textContent = "الصفحة " + (i+1);
+        div.addEventListener('click', ()=> goToPageByIndex(i));
+        div.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); div.click(); } });
+        tocListEl.appendChild(div);
+      });
     }
   }
 
-  /*********** تهيئة الفليب ***********/
+  // دوال التنقّل داخل flip instance
+  let flipInstance = null;
+  function goToPageByIndex(idx){
+    if(!flipInstance){ console.warn("flip not ready"); return; }
+    try{
+      if(typeof flipInstance.flip === 'function'){ flipInstance.flip(idx); return; }
+      if(typeof flipInstance.goToPage === 'function'){ flipInstance.goToPage(idx); return; }
+      if(typeof flipInstance.turnTo === 'function'){ flipInstance.turnTo(idx); return; }
+      console.warn("لا توجد دوال تنقل معروفة على instance");
+    }catch(e){ console.error(e); }
+  }
+
   function initFlip(ctor, imgList){
-    bookEl.innerHTML = ""; // نظف المكان
+    bookEl.innerHTML = "";
     const opts = getOptions();
     try{
       const flip = new ctor(bookEl, opts);
       flip.loadFromImages(imgList);
       flipInstance = flip;
-      window._myFlip = flip; // مرجع سهل للفحص
-      debugEl.textContent = `تم التحميل (عرض=${opts.width}px × ارتفاع=${opts.height}px)`;
-      // إن كان هناك نداء معلق للانتقال لصفحة:
-      if(pendingGoto !== null){
-        const t = pendingGoto;
-        pendingGoto = null;
-        // تنفذ بعد لحظة صغيرة حتى يكمل flip الرسم
-        setTimeout(()=> goToPage(t), 250);
-      }
-      // تحديث responsive (محاولة استدعاء updateFromOptions إن وجدت)
-      window.addEventListener('resize', function(){
-        const newOpts = getOptions();
-        try{ flip.updateFromOptions ? flip.updateFromOptions(newOpts) : null; }catch(e){}
-      });
+      window._myFlip = flip;
+      debugEl.textContent = `تم التحميل (عرض=${opts.width}px × ارتفاع=${opts.height}px)`; 
+      window.addEventListener('resize', ()=> { try{ const no = getOptions(); flip.updateFromOptions ? flip.updateFromOptions(no) : null; }catch(e){} });
     }catch(err){
       bookEl.innerHTML = '<div class="message">خطأ عند تهيئة Flipbook — افتح Console للمزيد.</div>';
       console.error("initFlip error:", err);
     }
   }
 
-  /*********** نقطة الدخول START ***********/
-  function start(){
+  // فحص خفيف للصور (HEAD) — اختياري، لا توقف التنفيذ عند الخطأ
+  async function checkImages(list){
+    return Promise.all(list.map(url => fetch(url, { method: 'HEAD' }).then(r=> { if(!r.ok) throw new Error(url + " -> " + r.status); return url; }) ));
+  }
+
+  /*********** نقطة البداية START ***********/
+  async function start(){
     showMessage('جاري التحميل…');
 
     const ctor = getCtor();
@@ -271,29 +194,30 @@
       return;
     }
 
-    // جهز قائمة الصور (نسخة)
-    let imgs = images.slice(0);
+    // 1) بناء قائمة الصور
+    let imgs = buildImagesList();
 
-    if(reverseMode){
-      imgs = imgs.reverse();
+    // 2) عكس إن لزم
+    if(reverseMode) imgs = imgs.slice().reverse();
+    const currentImgs = imgs.slice(0);
+
+    // 3) تحميل الفهرس
+    const bookmarks = await loadBookmarks();
+
+    // 4) بناء الفهرس الجانبي باستخدام الـbookmarks (إن وُجدت)
+    buildToc(bookmarks, currentImgs);
+
+    // 5) فحص ثم تهيئة الفليب
+    try{
+      await checkImages(currentImgs);
+    }catch(err){
+      // نسمح بالاستمرار لكن نعرض التحذير
+      console.warn("بعض الصور قد تكون غير متاحة:", err);
     }
-    // خزّنها عالمياً لاستخدامها داخل goToPage
-    currentImgs = imgs.slice(0);
-
-    // بناء الفهرس الآن (ليس له تأثير على DOM داخل #book)
-    buildToc(currentImgs);
-
-    // تحقق من الصور ثم ابدأ التهيئة
-    checkImages(currentImgs)
-      .then(()=> initFlip(ctor, currentImgs))
-      .catch(err=>{
-        bookEl.innerHTML = '<div class="message">خطأ: بعض الصور غير متوفرة أو مساراتها خاطئة. افتح Console.</div>';
-        debugEl.textContent = "خطأ بفحص الصور: " + err.message;
-        console.error("Image check failed:", err);
-      });
+    initFlip(ctor, currentImgs);
   }
 
-  /*********** أزرار تحكم بسيطة ***********/
+  // أزرار تحكم
   toggleBtn.addEventListener('click', function(){
     if(document.documentElement.style.getPropertyValue('--container-max-width') === '760px'){
       document.documentElement.style.setProperty('--container-max-width','1100px');
@@ -307,15 +231,14 @@
   reverseBtn.addEventListener('click', function(){
     reverseMode = !reverseMode;
     this.textContent = reverseMode ? 'إلغاء عكس الصفحات' : 'عكس ترتيب الصفحات';
-    // أعد بناء وعرض الكتاب بالترتيب الجديد
-    // نظهر رسالة قصيرة ثم نعيد التشغيل
+    // إعادة التشغيل لعرض الترتيب الجديد
     start();
   });
 
   // ابدأ
   start();
 
-  // expose for debugging
+  // عرض مرجع للفحص
   console.info("Flipbook loaded. window._myFlip references instance (after init).");
 
 })();
