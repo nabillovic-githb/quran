@@ -59,10 +59,10 @@
 (async function(){
 
   /*********** إعدادات ***********/
-  const LAST_PAGE = 685;                     // عدّل إن تغيّر عدد الصفحات
-  const IMAGE_TEMPLATE = "pages/{page}.png"; // قالب اسم الصورة
-  const BOOKMARKS_JSON = "data/bookmarks.json"; // مسار ملف الفهرس في الريبو
-  let reverseMode = false;                    // true لعرض الغلاف على اليمين (PDF عربي)
+  const LAST_PAGE = 685;                     // عدّل إذا اختلف عدد الصفحات
+  const IMAGE_TEMPLATE = "pages/{page}.png"; // قالب اسم الملف داخل المجلد pages
+  const BOOKMARKS_JSON = "data/bookmarks.json"; // ملف الفهرس داخل الريبو (raw)
+  let reverseMode = false;                   // لو أردت عكس المصفوفة كاملة بعد ترتيب عربي اضبط true
   const MAX_WIDTH_LIMIT = 900;
   const HEIGHT_RATIO = 1.2;
 
@@ -84,16 +84,7 @@
     return { width, height, size: "stretch", showCover: true, rtl: true, mobileScrollSupport: false, usePortrait: false };
   }
 
-  // توليد قائمة المسارات تلقائياً (1..LAST_PAGE)
-  function buildImagesList(){
-    const arr = [];
-    for(let p=1; p<=LAST_PAGE; p++){
-      arr.push(IMAGE_TEMPLATE.replace("{page}", p));
-    }
-    return arr;
-  }
-
-  // تحميل الفهرس (bookmarks.json) من الريبو
+  // تحميل bookmarks.json
   async function loadBookmarks(){
     try{
       const resp = await fetch(BOOKMARKS_JSON);
@@ -112,19 +103,36 @@
     return m ? Number(m[1]) : null;
   }
 
-  // إنشاء الفهرس داخل الشريط الجانبي بناءً على bookmarks (أولوية) أو عناوين افتراضية
+  // ترتيب عربي: نريد أن تظهر الأزواج على شكل (يمين ثم يسار)
+  function arabicOrder(arr){
+    if(!arr || arr.length === 0) return arr.slice();
+    const out = [];
+    // الغلاف (page 1) نحتفظ به كبداية إن أردت ذلك
+    out.push(arr[0]);
+    // بعد الغلاف، نعالج الأزواج (2 و3)، (4 و5) ... بحيث نضع الأكبر أولاً (يمين) ثم الأصغر (يسار)
+    for(let i = 1; i < arr.length; i += 2){
+      if(arr[i+1]){
+        out.push(arr[i+1]); // رقم أكبر -> يمين
+        out.push(arr[i]);   // رقم أصغر -> يسار
+      } else {
+        out.push(arr[i]);
+      }
+    }
+    return out;
+  }
+
+  // بناء الفهرس (TOC)؛ عند النقر نبحث عن الصورة ذات نفس رقم الصفحة
   function buildToc(bookmarks, currentImgs){
     tocListEl.innerHTML = "";
     if(bookmarks && bookmarks.length){
-      bookmarks.forEach((bm, idx)=>{
+      bookmarks.forEach((bm)=>{
         const div = document.createElement("div");
         div.className = "item";
         div.tabIndex = 0;
         div.textContent = bm.title;
         div.addEventListener('click', ()=> {
-          // نحول رقم صفحة PDF إلى index داخل currentImgs
           const targetPage = Number(bm.page);
-          // نبحث عن الصورة التي تحمل نفس رقم الصفحة
+          // نبحث عن index الصورة التي تحتوي على هذا الرقم
           let foundIndex = -1;
           for(let i=0;i<currentImgs.length;i++){
             const pn = extractPageNumberFromUrl(currentImgs[i]);
@@ -137,8 +145,8 @@
         tocListEl.appendChild(div);
       });
     } else {
-      // إن لم يوجد bookmarks، نعرض عناوين افتراضية "الصفحة N"
-      currentImgs.forEach((url, i)=>{
+      // fallback: عرض أرقام صفحات افتراضية
+      for(let i=0;i<LAST_PAGE;i++){
         const div = document.createElement("div");
         div.className = "item";
         div.tabIndex = 0;
@@ -146,11 +154,11 @@
         div.addEventListener('click', ()=> goToPageByIndex(i));
         div.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); div.click(); } });
         tocListEl.appendChild(div);
-      });
+      }
     }
   }
 
-  // دوال التنقّل داخل flip instance
+  /*********** Flip instance & navigation ***********/
   let flipInstance = null;
   function goToPageByIndex(idx){
     if(!flipInstance){ console.warn("flip not ready"); return; }
@@ -158,7 +166,7 @@
       if(typeof flipInstance.flip === 'function'){ flipInstance.flip(idx); return; }
       if(typeof flipInstance.goToPage === 'function'){ flipInstance.goToPage(idx); return; }
       if(typeof flipInstance.turnTo === 'function'){ flipInstance.turnTo(idx); return; }
-      console.warn("لا توجد دوال تنقل معروفة على instance");
+      console.warn("no known navigation function on instance");
     }catch(e){ console.error(e); }
   }
 
@@ -171,6 +179,7 @@
       flipInstance = flip;
       window._myFlip = flip;
       debugEl.textContent = `تم التحميل (عرض=${opts.width}px × ارتفاع=${opts.height}px)`; 
+      // responsive update
       window.addEventListener('resize', ()=> { try{ const no = getOptions(); flip.updateFromOptions ? flip.updateFromOptions(no) : null; }catch(e){} });
     }catch(err){
       bookEl.innerHTML = '<div class="message">خطأ عند تهيئة Flipbook — افتح Console للمزيد.</div>';
@@ -178,7 +187,7 @@
     }
   }
 
-  // فحص خفيف للصور (HEAD) — اختياري، لا توقف التنفيذ عند الخطأ
+  // فحص بسيط لوجود الصور (HEAD) - اختياري
   async function checkImages(list){
     return Promise.all(list.map(url => fetch(url, { method: 'HEAD' }).then(r=> { if(!r.ok) throw new Error(url + " -> " + r.status); return url; }) ));
   }
@@ -194,27 +203,29 @@
       return;
     }
 
-    // 1) بناء قائمة الصور
-    let imgs = buildImagesList();
+    // 1) بناء قائمة الصور (1..LAST_PAGE)
+    let imgs = [];
+    for(let p=1; p<=LAST_PAGE; p++){
+      imgs.push(IMAGE_TEMPLATE.replace("{page}", p));
+    }
 
-    // 2) عكس إن لزم
-    if(reverseMode) imgs = imgs.slice().reverse();
-    const currentImgs = imgs.slice(0);
+    // 2) أعد ترتيب الصور لتناسب الشكل العربي الزوجي (يمين ثم يسار)
+    imgs = arabicOrder(imgs);
 
-    // 3) تحميل الفهرس
+    // 3) إن أردت عكس المصفوفة كلها بعد الترتيب (نترك الافتراضي false)
+    if(reverseMode){
+      imgs = imgs.slice().reverse();
+    }
+
+    // 4) تحميل الفهرس (bookmarks.json)
     const bookmarks = await loadBookmarks();
 
-    // 4) بناء الفهرس الجانبي باستخدام الـbookmarks (إن وُجدت)
-    buildToc(bookmarks, currentImgs);
+    // 5) بناء الفهرس الجانبي مع currentImgs
+    buildToc(bookmarks, imgs);
 
-    // 5) فحص ثم تهيئة الفليب
-    try{
-      await checkImages(currentImgs);
-    }catch(err){
-      // نسمح بالاستمرار لكن نعرض التحذير
-      console.warn("بعض الصور قد تكون غير متاحة:", err);
-    }
-    initFlip(ctor, currentImgs);
+    // 6) فحص ثم تهيئة الفليب
+    try{ await checkImages(imgs); }catch(err){ console.warn("بعض الصور قد تكون غير متاحة:", err); }
+    initFlip(ctor, imgs);
   }
 
   // أزرار تحكم
@@ -231,18 +242,15 @@
   reverseBtn.addEventListener('click', function(){
     reverseMode = !reverseMode;
     this.textContent = reverseMode ? 'إلغاء عكس الصفحات' : 'عكس ترتيب الصفحات';
-    // إعادة التشغيل لعرض الترتيب الجديد
-    start();
+    start(); // أعد بناء مع الوضع الجديد
   });
 
   // ابدأ
   start();
 
-  // عرض مرجع للفحص
   console.info("Flipbook loaded. window._myFlip references instance (after init).");
 
 })();
 </script>
 </body>
 </html>
-
