@@ -3,268 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Flipbook - كتاب قابل للتقليب</title>
+<title>المصحف — كتاب قابل للتقليب</title>
 
-<!-- مكتبة PageFlip -->
 <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
 <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
 <style>
   :root{ --container-max-width:1100px; }
-  html,body{ margin:0; padding:0; font-family:Tahoma, "Segoe UI", Arial; background:#f3f3f3; direction:rtl; }
-  .wrap{ max-width:var(--container-max-width); margin:18px auto; padding:10px; box-sizing:border-box; }
-  header{ text-align:center; margin-bottom:10px; }
-  header h1{ margin:0; font-size:1.4rem; }
-  .controls{ text-align:center; margin:10px 0 18px; }
-  .book-container{ display:flex; justify-content:center; align-items:flex-start; gap:20px; }
-  #book{ width:100%; max-width:900px; height:700px; background:#fff; border-radius:10px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow:hidden; }
-  .toc { width:260px; max-height:80vh; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.12); padding:12px; box-sizing:border-box; overflow:auto; position:sticky; top:20px; align-self:flex-start; }
-  .toc h3{ margin:4px 0 10px; text-align:center; }
-  .toc .item{ background:#f7f8fb; border-radius:8px; padding:10px; margin-bottom:8px; cursor:pointer; text-align:right; transition:background .15s, transform .08s; font-size:15px; }
-  .toc .item:hover{ background:#e6f0ff; transform:translateX(-4px); }
-  @media (max-width:920px){
-    .book-container{ flex-direction:column; align-items:center; }
-    .toc{ position:relative; width:90%; max-width:420px; margin-bottom:10px; top:auto; }
-    #book{ height:560px; }
+  html,body{
+    margin:0; padding:0;
+    font-family:Tajawal, Tahoma, "Segoe UI", Arial;
+    background:#f3f3f3;
+    direction:rtl;
   }
-  @media (max-width:480px){ #book{ height:420px; } }
-  .message{ padding:18px; text-align:center; color:#333; }
-  #debug{ color:#666; font-size:0.9rem; max-width:900px; margin:8px auto; text-align:center;}
-  /* عكس إحداثيات الفليب بحيث يصبح تقليب الصفحات عربياً
-   ثم عكس الصور داخل الفليب لإبقائها قابلة للقراءة */
-#book {
-  transform: scaleX(-1);
-  /* حافظ على أي خصائص موجودة مسبقاً */
-}
+  .wrap{ max-width:var(--container-max-width); margin:18px auto; padding:10px; }
+  header{text-align:center; margin-bottom:10px;}
+  header h1{ margin:0; font-size:1.3rem; }
 
-#book .page,   /* عناصر الـ page داخل مكتبة page-flip قد تستخدم هذه الكلاسات */
-#book img {
-  transform: scaleX(-1);
-  /* تأكد أن transform-origin تبقى مركزية حسب الحاجة */
-}
+  .book-container{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:20px;
+  }
 
+  #book{
+    width:100%;
+    max-width:900px;
+    height:700px;
+    background:#fff;
+    border-radius:10px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+    overflow:hidden;
+  }
+
+  .toc{
+    width:220px;
+    max-height:80vh;
+    background:#fff;
+    border-radius:12px;
+    padding:12px;
+    overflow:auto;
+    position:sticky;
+    top:20px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);
+  }
+  .toc .item{
+    background:#f7f8fb;
+    border-radius:8px;
+    padding:10px;
+    cursor:pointer;
+    margin-bottom:10px;
+    transition:background .15s, transform .08s;
+  }
+  .toc .item:hover{
+    background:#e6f0ff;
+    transform:translateX(-4px);
+  }
 </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <header>
-      <h1>كتابي القابل لتقليب الصفحات</h1>
-      <div class="info" style="color:#444">الفهرس يسحب أسماء السور من ملف JSON. اضغط على اسم لتنتقل للصفحة.</div>
-    </header>
+<div class="wrap">
 
-    <div class="controls">
-      <button id="toggleSizeBtn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer">تبديل حجم العرض</button>
-      <button id="reverseBtn" style="padding:8px 12px;border-radius:8px;border:0;background:#0b79d0;color:#fff;cursor:pointer;margin-left:8px">عكس ترتيب الصفحات</button>
-    </div>
+<header>
+  <h1>المصحف الشريف — نسخة التقليب</h1>
+</header>
 
-    <div class="book-container">
-      <div class="toc" id="toc" aria-label="فهرس الكتاب">
-        <h3>الفهرس</h3>
-        <div id="tocList"></div>
-      </div>
-      <div id="book" role="application" aria-live="polite"></div>
-    </div>
-
-    <div id="debug" aria-hidden="true"></div>
+<div class="book-container">
+  <div class="toc">
+    <h3>الفهرس</h3>
+    <div id="tocList"></div>
   </div>
+
+  <div id="book"></div>
+</div>
+
+</div>
 
 <script>
 (async function(){
 
-  /*********** إعدادات ***********/
-  const LAST_PAGE = 685;                     // عدّل إذا اختلف عدد الصفحات
-  const IMAGE_TEMPLATE = "pages/{page}.png"; // قالب اسم الملف داخل المجلد pages
-  const BOOKMARKS_JSON = "data/bookmarks.json"; // ملف الفهرس داخل الريبو (raw)
-  let reverseMode = false;                   // لو أردت عكس المصفوفة كاملة بعد ترتيب عربي اضبط true
-  const MAX_WIDTH_LIMIT = 900;
-  const HEIGHT_RATIO = 1.2;
+  /*-------------------------*
+   *   تحميل الفهرس من JSON   *
+   *-------------------------*/
+  const bookmarks = await fetch("data/bookmarks.json").then(r=>r.json());
 
-  /*********** عناصر DOM ***********/
-  const bookEl = document.getElementById("book");
-  const tocListEl = document.getElementById("tocList");
-  const debugEl = document.getElementById("debug");
-  const toggleBtn = document.getElementById("toggleSizeBtn");
-  const reverseBtn = document.getElementById("reverseBtn");
+  /*-------------------------*
+   *     تحضير الصور         *
+   *-------------------------*/
+  const totalPages = 685;
+  const images = [];
+  for(let i=1;i<=totalPages;i++){
+    images.push(`pages/${i}.png`);
+  }
 
-  /*********** وظائف مساعدة ***********/
-  function getCtor(){ return window.PageFlip || (window.St && window.St.PageFlip) || null; }
-  function showMessage(text){ bookEl.innerHTML = '<div class="message">'+text+'</div>'; }
+  /*-------------------------*
+   *   بناء الفهرس (TOC)     *
+   *-------------------------*/
+  const toc = document.getElementById("tocList");
+  bookmarks.forEach(item=>{
+    const div = document.createElement("div");
+    div.className = "item";
+    div.textContent = item.title;
+    div.onclick = ()=> goToPage(item.page-1);
+    toc.appendChild(div);
+  });
 
+  /*-------------------------*
+   *  خيارات PageFlip         *
+   *-------------------------*/
   function getOptions(){
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    const width = Math.min(MAX_WIDTH_LIMIT, Math.floor(vw * 0.92));
-    const height = Math.floor(width * HEIGHT_RATIO);
-    return { width, height, size: "stretch", showCover: true, rtl: true, mobileScrollSupport: false, usePortrait: false };
+    return {
+      width:900,
+      height:700,
+      showCover:true,
+      size:"stretch",
+      rtl:false,        // ← هذا يجعل التقليب عربي صحيح
+      usePortrait:false,
+      mobileScrollSupport:false
+    };
   }
 
-  // تحميل bookmarks.json
-  async function loadBookmarks(){
-    try{
-      const resp = await fetch(BOOKMARKS_JSON);
-      if(!resp.ok) throw new Error("فشل تحميل bookmarks.json: " + resp.status);
-      const arr = await resp.json();
-      return Array.isArray(arr) ? arr.filter(it=>it && it.title && Number(it.page)>0).map(it=>({ title: String(it.title), page: Number(it.page) })) : [];
-    }catch(err){
-      console.warn("loadBookmarks:", err);
-      return [];
-    }
-  }
+  /*-------------------------*
+   *      تهيئة المصحف        *
+   *-------------------------*/
+  const bookEl = document.getElementById("book");
+  const flip = new PageFlip(bookEl, getOptions());
 
-  // استخراج رقم الصفحة من رابط الصورة (يفترض وجود رقم قبل الامتداد)
-  function extractPageNumberFromUrl(url){
-    const m = url.match(/(\d+)(?=\.\w+$)/);
-    return m ? Number(m[1]) : null;
-  }
+  flip.loadFromImages(images);
 
-  // ترتيب عربي: نريد أن تظهر الأزواج على شكل (يمين ثم يسار)
-  function arabicOrder(arr){
-    if(!arr || arr.length === 0) return arr.slice();
-    const out = [];
-    // الغلاف (page 1) نحتفظ به كبداية إن أردت ذلك
-    out.push(arr[0]);
-    // بعد الغلاف، نعالج الأزواج (2 و3)، (4 و5) ... بحيث نضع الأكبر أولاً (يمين) ثم الأصغر (يسار)
-    for(let i = 1; i < arr.length; i += 2){
-      if(arr[i+1]){
-        out.push(arr[i+1]); // رقم أكبر -> يمين
-        out.push(arr[i]);   // رقم أصغر -> يسار
-      } else {
-        out.push(arr[i]);
-      }
-    }
-    return out;
-  }
-
-  // بناء الفهرس (TOC)؛ عند النقر نبحث عن الصورة ذات نفس رقم الصفحة
-  function buildToc(bookmarks, currentImgs){
-    tocListEl.innerHTML = "";
-    if(bookmarks && bookmarks.length){
-      bookmarks.forEach((bm)=>{
-        const div = document.createElement("div");
-        div.className = "item";
-        div.tabIndex = 0;
-        div.textContent = bm.title;
-        div.addEventListener('click', ()=> {
-          const targetPage = Number(bm.page);
-          // نبحث عن index الصورة التي تحتوي على هذا الرقم
-          let foundIndex = -1;
-          for(let i=0;i<currentImgs.length;i++){
-            const pn = extractPageNumberFromUrl(currentImgs[i]);
-            if(pn === targetPage){ foundIndex = i; break; }
-          }
-          if(foundIndex >= 0) goToPageByIndex(foundIndex);
-          else alert("لم يتم العثور على صورة مطابقة لصفحة: " + targetPage);
-        });
-        div.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); div.click(); } });
-        tocListEl.appendChild(div);
-      });
-    } else {
-      // fallback: عرض أرقام صفحات افتراضية
-      for(let i=0;i<LAST_PAGE;i++){
-        const div = document.createElement("div");
-        div.className = "item";
-        div.tabIndex = 0;
-        div.textContent = "الصفحة " + (i+1);
-        div.addEventListener('click', ()=> goToPageByIndex(i));
-        div.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); div.click(); } });
-        tocListEl.appendChild(div);
-      }
-    }
-  }
-
-  /*********** Flip instance & navigation ***********/
-  let flipInstance = null;
-  function goToPageByIndex(idx){
-    if(!flipInstance){ console.warn("flip not ready"); return; }
-    try{
-      if(typeof flipInstance.flip === 'function'){ flipInstance.flip(idx); return; }
-      if(typeof flipInstance.goToPage === 'function'){ flipInstance.goToPage(idx); return; }
-      if(typeof flipInstance.turnTo === 'function'){ flipInstance.turnTo(idx); return; }
-      console.warn("no known navigation function on instance");
-    }catch(e){ console.error(e); }
-  }
-
-  function initFlip(ctor, imgList){
-    bookEl.innerHTML = "";
-    const opts = getOptions();
-    try{
-      const flip = new ctor(bookEl, opts);
-      flip.loadFromImages(imgList);
-      flipInstance = flip;
-      window._myFlip = flip;
-      debugEl.textContent = `تم التحميل (عرض=${opts.width}px × ارتفاع=${opts.height}px)`; 
-      // responsive update
-      window.addEventListener('resize', ()=> { try{ const no = getOptions(); flip.updateFromOptions ? flip.updateFromOptions(no) : null; }catch(e){} });
-    }catch(err){
-      bookEl.innerHTML = '<div class="message">خطأ عند تهيئة Flipbook — افتح Console للمزيد.</div>';
-      console.error("initFlip error:", err);
-    }
-  }
-
-  // فحص بسيط لوجود الصور (HEAD) - اختياري
-  async function checkImages(list){
-    return Promise.all(list.map(url => fetch(url, { method: 'HEAD' }).then(r=> { if(!r.ok) throw new Error(url + " -> " + r.status); return url; }) ));
-  }
-
-  /*********** نقطة البداية START ***********/
-  async function start(){
-    showMessage('جاري التحميل…');
-
-    const ctor = getCtor();
-    if(!ctor){
-      bookEl.innerHTML = '<div class="message">خطأ: مكتبة PageFlip غير محمّلة.</div>';
-      console.error("PageFlip lib not found.");
-      return;
-    }
-
-    // 1) بناء قائمة الصور (1..LAST_PAGE)
-    let imgs = [];
-    for(let p=1; p<=LAST_PAGE; p++){
-      imgs.push(IMAGE_TEMPLATE.replace("{page}", p));
-    }
-
-    // 2) أعد ترتيب الصور لتناسب الشكل العربي الزوجي (يمين ثم يسار)
-    imgs = arabicOrder(imgs);
-
-    // 3) إن أردت عكس المصفوفة كلها بعد الترتيب (نترك الافتراضي false)
-    if(reverseMode){
-      imgs = imgs.slice().reverse();
-    }
-
-    // 4) تحميل الفهرس (bookmarks.json)
-    const bookmarks = await loadBookmarks();
-
-    // 5) بناء الفهرس الجانبي مع currentImgs
-    buildToc(bookmarks, imgs);
-
-    // 6) فحص ثم تهيئة الفليب
-    try{ await checkImages(imgs); }catch(err){ console.warn("بعض الصور قد تكون غير متاحة:", err); }
-    initFlip(ctor, imgs);
-  }
-
-  // أزرار تحكم
-  toggleBtn.addEventListener('click', function(){
-    if(document.documentElement.style.getPropertyValue('--container-max-width') === '760px'){
-      document.documentElement.style.setProperty('--container-max-width','1100px');
-      this.textContent = 'تبديل حجم العرض';
-    } else {
-      document.documentElement.style.setProperty('--container-max-width','760px');
-      this.textContent = 'تكبير العرض';
-    }
-  });
-
-  reverseBtn.addEventListener('click', function(){
-    reverseMode = !reverseMode;
-    this.textContent = reverseMode ? 'إلغاء عكس الصفحات' : 'عكس ترتيب الصفحات';
-    start(); // أعد بناء مع الوضع الجديد
-  });
-
-  // ابدأ
-  start();
-
-  console.info("Flipbook loaded. window._myFlip references instance (after init).");
+  window.goToPage = function(i){
+    flip.flip(i);
+  };
 
 })();
 </script>
+
 </body>
 </html>
-
