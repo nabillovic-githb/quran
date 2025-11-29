@@ -30,6 +30,19 @@
   @media (max-width:480px){ #book{ height:420px; } }
   .message{ padding:18px; text-align:center; color:#333; }
   #debug{ color:#666; font-size:0.9rem; max-width:900px; margin:8px auto; text-align:center;}
+  /* عكس إحداثيات الفليب بحيث يصبح تقليب الصفحات عربياً
+   ثم عكس الصور داخل الفليب لإبقائها قابلة للقراءة */
+#book {
+  transform: scaleX(-1);
+  /* حافظ على أي خصائص موجودة مسبقاً */
+}
+
+#book .page,   /* عناصر الـ page داخل مكتبة page-flip قد تستخدم هذه الكلاسات */
+#book img {
+  transform: scaleX(-1);
+  /* تأكد أن transform-origin تبقى مركزية حسب الحاجة */
+}
+
 </style>
 </head>
 <body>
@@ -254,3 +267,4 @@
 </script>
 </body>
 </html>
+
