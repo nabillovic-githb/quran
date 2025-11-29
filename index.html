@@ -3,6 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المصحف — كتاب قابل للتقليب</title>
+
+<link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
+<script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
+
+<style>
+  :root{ --container-max-width:1100px; }
+  html,body{
+    margin:0; padding:0;
+    font-family:Tajawal, Tahoma, "Segoe UI", Arial;
+    background:#f3f3f3;
+    direction:rtl;
+  }
+  .wrap{ max-width:var(--container-max-width); margin:18px auto; padding:10px; }
+  header{text-align:center; margin-bottom:10px;}
+  header h1{ margin:0; font-size:1.3rem; }
+
+  .book-container{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:20px;
+  }
+
+  #book{
+    width:100%;
+    max-width:900px;
+    height:700px;
+    background:#fff;
+    border-radius:10px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+    overflow:hidden;
+  }
+
+  .toc{
+    width:220px;
+    max-height:80vh;
+    background:#fff;
+    border-radius:12px;
+    padding:12px;
+    overflow:auto;
+    position:sticky;
+    top:20px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);
+  }
+  .toc .item{
+    background:#f7f8fb;
+    border-radius:8px;
+    padding:10px;
+    cursor:pointer;
+    margin-bottom:10px;
+    transition:background .15s, transform .08s;
+  }
+  .toc .item:hover{
+    background:#e6f0ff;
+    transform:translateX(-4px);
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<header>
+  <h1>المصحف الشريف — نسخة التقليب</h1>
+</header>
+
+<div class="book-container">
+  <div class="toc">
+    <h3>الفهرس</h3>
+    <div id="tocList"></div>
+  </div>
+
+  <div id="book"></div>
+</div>
+
+</div>
+
+<script>
+(async function(){
+
+  const LAST_PAGE = 685;
+  const pages = [];
+  for(let i=1; i<=LAST_PAGE; i++){
+    pages.push(`pages/${i}.png`);
+  }
+
+  const bookmarks = await fetch("data/bookmarks.json").then(r=>r.json()).catch(()=>[]);
+
+  const toc = document.getElementById("tocList");
+  bookmarks.forEach(item=>{
+    const div = document.createElement("div");
+    div.className = "item";
+    div.textContent = item.title;
+    div.onclick = ()=> flipTo(item.page - 1);
+    toc.appendChild(div);
+  });
+
+  function getOptions(){
+    return {
+      width:900,
+      height:700,
+      showCover:true,
+      size:"stretch",
+      rtl:true,
+      usePortrait:false,
+      mobileScrollSupport:false,
+    };
+  }
+
+  const bookEl = document.getElementById("book");
+  const flip = new PageFlip(bookEl, getOptions());
+
+  flip.loadFromImages(pages);
+
+  // ★★★ يفتح على آخر صفحة مباشرة ★★★
+  flip.flip(LAST_PAGE - 1);
+
+  window.flipTo = function(i){
+    flip.flip(i);
+  };
+
+})();
+</script>
+
+</body>
+</html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Flipbook - كتاب قابل للتقليب</title>
 
 <!-- مكتبة PageFlip -->
@@ -245,3 +376,4 @@
 </script>
 </body>
 </html>
+
