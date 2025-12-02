@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>المصحف — كتاب قابل للتقليب</title>
+<title>المصحف — كتاب قابل للتقليب (مصحّح)</title>
 
 <!-- PageFlip CSS + JS (CDN) -->
 <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
@@ -93,7 +93,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>المصحف الشريف — نسخة التقليب</h1>
+    <h1>المصحف الشريف — نسخة التقليب (مصحّح)</h1>
   </header>
 
   <div class="book-container">
@@ -117,11 +117,15 @@
   const PAGE_TEMPLATE = "pages/{page}.png"; // مسار صور الصفحات؛ عدّل إن لزم
   const BOOKMARKS_JSON = "data/bookmarks.json"; // (اختياري) مسارات الفهرس
 
-  // === توليد قائمة الصور ===
-  const pages = [];
+  // === توليد قائمة الصور (مفروضة بترتيب طبيعي 1..N) ===
+  const pagesNormal = [];
   for(let i=1;i<=LAST_PAGE;i++){
-    pages.push(PAGE_TEMPLATE.replace("{page}", i));
+    pagesNormal.push(PAGE_TEMPLATE.replace("{page}", i));
   }
+
+  // === لعلاج مشكلة الافتتاح بالصفحة الأخيرة: نعكس المصفوفة قبل التحميل ===
+  // هذا يجعل العنصر 0 في المصفوفة المعطاة إلى PageFlip هو الصفحة 1 فعلاً.
+  const pages = pagesNormal.slice().reverse();
 
   // === بناء الفهرس الجانبي ===
   const toc = document.getElementById("tocList");
@@ -164,9 +168,9 @@
     return {
       width: 900,
       height: 700,
-      showCover: false,   // إذا أردت غلاف خاص قم بتغييره إلى true مع ضبط المؤشر الابتدائي
+      showCover: false,
       size: "stretch",
-      rtl: true,          // مهم جداً لعرض عربي / تقليب من اليسار إلى اليمين بصرياً
+      rtl: true,          // مهم جداً لعرض عربي / تقليب بصري من اليسار إلى اليمين
       usePortrait: false,
       mobileScrollSupport: false
     };
@@ -184,33 +188,27 @@
   // === إنشاء الكتاب ===
   const flip = new FlipCtor(bookEl, getOptions());
 
-  // تحميل الصور (loadFromImages قد يرجع Promise)
+  // تحميل الصور (نمرّر المصفوفة المعكوسة)
   try{
     await flip.loadFromImages(pages);
   }catch(err){
     console.warn("loadFromImages warning/error:", err);
-    // لا نوقف التنفيذ — المكتبة قد تكون تعاملت مع الصور داخلياً
   } finally {
-    // إزالة مؤشر التحميل
     if(loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl);
   }
 
   // === دوال تحويل الصفحات (1-based) <-> index المكتبة ===
+  // بما أننا عكسنا المصفوفة: index داخل المكتبة = pageNumber - 1
   function pageToIndex(pageNumber){
-    // pageNumber: 1..LAST_PAGE
-    // في وضع rtl: index 0 يعرض آخر صفحة، لذا نحسب:
-    return pages.length - pageNumber;
+    return Math.max(0, Math.min(pages.length-1, Number(pageNumber) - 1));
   }
   function indexToPage(index){
-    return pages.length - index;
+    return index + 1;
   }
 
   // افتح العرض ابتدائياً عند "الصفحة 1" بحيث تظهر على الجهة اليسرى (العلامة X)
   try {
-    const initialIndex = pageToIndex(1);
-    // تأكد من أن المؤشر صالح
-    const clamped = Math.max(0, Math.min(pages.length-1, initialIndex));
-    flip.flip(clamped);
+    flip.flip( pageToIndex(1) ); // هذا يعرض الصفحة 1 (الموقع 0 بعد العكس)
   } catch(e){
     console.warn("initial flip error:", e);
   }
@@ -231,21 +229,16 @@
     bookEl.appendChild(leftZone);
     bookEl.appendChild(rightZone);
 
-    /* ملاحظات حول السلوك في RTL:
-       - بصرياً: الصفحة الأولى تظهر على الجهة اليسرى، والتقليب يتم "من اليسار إلى اليمين".
-       - خرائط DOM معكوسة قليلاً لذلك نربط الأزرار بحيث يكون النقر على الطرف الأيمن (من العرض) يسحب الكتاب إلى الخلف.
-    */
+    // ضبط السلوك ليتناسب مع العرض العربي/RTL
     leftZone.addEventListener('click', ()=> {
-      // الطرف الأيمن من DOM (leftZone) => نتقدّم بالكتاب (next visually)
+      // الطرف الأيمن من العرض (DOM leftZone) -> التقدم بصرياً
       try{ flip.flipNext(); }catch(e){ try{ flip.flip(Math.max(0, flip.getCurrentPageIndex() - 1)); }catch(_){} }
     }, {passive:true});
     rightZone.addEventListener('click', ()=> {
-      // الطرف الأيسر من DOM (rightZone) => نعود بالكتاب (prev visually)
+      // الطرف الأيسر من العرض (DOM rightZone) -> الرجوع بصرياً
       try{ flip.flipPrev(); }catch(e){ try{ flip.flip(Math.min(pages.length-1, flip.getCurrentPageIndex() + 1)); }catch(_){} }
     }, {passive:true});
   })();
-
-  // اختياري: اضف هنا أي أزرار تحكم إضافية (تكبير/طباعة/حفظ/إظهار صفحة) إن رغبت.
 
 })();
 </script>
