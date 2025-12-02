@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>المصحف — كتاب قابل للتقليب</title>
 
+<!-- PageFlip CSS + JS (CDN) -->
 <link rel="stylesheet" href="https://unpkg.com/page-flip/dist/css/page-flip.css">
 <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
@@ -12,7 +13,7 @@
   :root{ --container-max-width:1100px; }
   html,body{
     margin:0; padding:0;
-    font-family:Tajawal, Tahoma, "Segoe UI", Arial;
+    font-family: "Tajawal", Tahoma, "Segoe UI", Arial, sans-serif;
     background:#f3f3f3;
     direction:rtl;
   }
@@ -49,6 +50,7 @@
     top:20px;
     box-shadow:0 8px 24px rgba(0,0,0,0.12);
   }
+  .toc h3{ margin-top:0; margin-bottom:8px; font-size:1rem; }
   .toc .item{
     background:#f7f8fb;
     border-radius:8px;
@@ -57,16 +59,27 @@
     margin-bottom:10px;
     transition:background .15s, transform .08s;
     text-align:right;
+    user-select:none;
   }
-  .toc .item:hover{
+  .toc .item:hover,
+  .toc .item:focus{
     background:#e6f0ff;
     transform:translateX(-4px);
+    outline:none;
   }
 
-  /* مناطق النقر للّتحكم باتجاه التقليب (اختياري، إن أردت لاحقًا) */
+  /* مناطق النقر للتحكم بالصفحات (شفافة) */
   .flip-zone{ position:absolute; top:0; height:100%; width:50%; z-index:999; background:transparent; }
-  .flip-zone.left { right:0; } /* النصف الأيمن في DOM يمثل اليمين بصيغة RTL */
+  .flip-zone.left { right:0; }  /* DOM اليسار = الطرف الأيمن بصيغة RTL */
   .flip-zone.right { left:0; }
+
+  /* مؤشر تحميل بسيط */
+  .loading-overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
+    z-index:2000;
+    font-size:1rem;
+  }
 
   @media (max-width:920px){
     .book-container{ flex-direction:column; align-items:center; }
@@ -79,54 +92,62 @@
 
 <body>
 <div class="wrap">
-<header>
-  <h1>المصحف الشريف — نسخة التقليب</h1>
-</header>
+  <header>
+    <h1>المصحف الشريف — نسخة التقليب</h1>
+  </header>
 
-<div class="book-container">
-  <div class="toc">
-    <h3>الفهرس</h3>
-    <div id="tocList"></div>
+  <div class="book-container">
+    <div class="toc" aria-label="فهرس الكتاب">
+      <h3>الفهرس</h3>
+      <div id="tocList"></div>
+    </div>
+
+    <div id="book" role="region" aria-label="نافذة عرض الكتاب">
+      <!-- سيتم إنشاء محتوى PageFlip هنا -->
+      <div class="loading-overlay" id="loading">جارٍ تحميل الصفحات…</div>
+    </div>
   </div>
-
-  <div id="book"></div>
-</div>
 </div>
 
 <script>
 (async function(){
 
-  const LAST_PAGE = 685; // عدّل إن اختلف عدد صفحاتك
-  const PAGE_TEMPLATE = "pages/{page}.png";
-  const BOOKMARKS_JSON = "data/bookmarks.json";
+  // === إعدادات قابلة للتعديل ===
+  const LAST_PAGE = 685;                    // عدّل حسب عدد صفحاتك
+  const PAGE_TEMPLATE = "pages/{page}.png"; // مسار صور الصفحات؛ عدّل إن لزم
+  const BOOKMARKS_JSON = "data/bookmarks.json"; // (اختياري) مسارات الفهرس
 
-  // تحضير قائمة المسارات (1..LAST_PAGE)
+  // === توليد قائمة الصور ===
   const pages = [];
   for(let i=1;i<=LAST_PAGE;i++){
     pages.push(PAGE_TEMPLATE.replace("{page}", i));
   }
 
-  // تحميل الفهرس (إن وُجد)
+  // === بناء الفهرس الجانبي ===
+  const toc = document.getElementById("tocList");
   let bookmarks = [];
   try{
     const resp = await fetch(BOOKMARKS_JSON);
-    if(resp.ok) bookmarks = await resp.json();
-  }catch(e){ console.warn("error loading bookmarks.json", e); }
+    if(resp.ok){
+      const j = await resp.json();
+      if(Array.isArray(j) && j.length) bookmarks = j;
+    }
+  }catch(e){
+    // لا بأس إن لم يوجد ملف فهرس
+  }
 
-  // بناء الفهرس في الشريط الجانبي؛ نمرّر رقم الصفحة الحقيقي (1-based) إلى flipTo
-  const toc = document.getElementById("tocList");
   if(Array.isArray(bookmarks) && bookmarks.length){
     bookmarks.forEach(item=>{
       const div = document.createElement("div");
       div.className = "item";
-      div.textContent = item.title;
+      div.textContent = item.title || ("الصفحة " + (item.page||'?'));
       div.tabIndex = 0;
       div.addEventListener('click', ()=> flipTo(item.page) );
       div.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipTo(item.page); } });
       toc.appendChild(div);
     });
   } else {
-    // إن لم يوجد فهرس، أنشئ عناصر افتراضية (الصفحة 1..N)
+    // فهرس افتراضي
     for(let p=1;p<=LAST_PAGE;p++){
       const div = document.createElement("div");
       div.className = "item";
@@ -138,42 +159,61 @@
     }
   }
 
-  // خيارات PageFlip
+  // === خيارات PageFlip ===
   function getOptions(){
     return {
       width: 900,
       height: 700,
-      showCover: true,
+      showCover: false,   // إذا أردت غلاف خاص قم بتغييره إلى true مع ضبط المؤشر الابتدائي
       size: "stretch",
-      rtl: true,               // مهم: نحتاج rtl=true لعرض عربي
+      rtl: true,          // مهم جداً لعرض عربي / تقليب من اليسار إلى اليمين بصرياً
       usePortrait: false,
       mobileScrollSupport: false
-      // يمكنك إضافة disableFlipByClick:true إن أردت التحكم اليدوي بالنقر
     };
   }
 
   const bookEl = document.getElementById("book");
+  const loadingEl = document.getElementById("loading");
   const FlipCtor = window.PageFlip || (window.St && window.St.PageFlip);
+
   if(!FlipCtor){
     bookEl.innerHTML = "<div style='padding:20px'>خطأ: مكتبة PageFlip غير متاحة.</div>";
     return;
   }
 
-  // تهيئة الفليب
+  // === إنشاء الكتاب ===
   const flip = new FlipCtor(bookEl, getOptions());
-  flip.loadFromImages(pages);
 
-  // helper: صفحة PDF (1-based) -> index المطلوب لمكتبة PageFlip في وضع rtl
-  function pageToIndex(pageNumber){
-    // pages array is [1,2,...,LAST_PAGE]
-    // في وضع rtl: index 0 يعرض آخر صفحة (page LAST_PAGE)
-    // لذا index المطلوب = pages.length - pageNumber
-    return pages.length - pageNumber;
+  // تحميل الصور (loadFromImages قد يرجع Promise)
+  try{
+    await flip.loadFromImages(pages);
+  }catch(err){
+    console.warn("loadFromImages warning/error:", err);
+    // لا نوقف التنفيذ — المكتبة قد تكون تعاملت مع الصور داخلياً
+  } finally {
+    // إزالة مؤشر التحميل
+    if(loadingEl && loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl);
   }
 
-  // افتح العرض مبدئياً على "آخر صفحة" ظاهريًا
-  // index = 0 في هذا الوضع يعرض الصفحة LAST_PAGE، ولكن لضمان سلوك موثوق نستخدم flip.flip(0)
-  try { flip.flip(0); } catch(e){ /* ignore */ }
+  // === دوال تحويل الصفحات (1-based) <-> index المكتبة ===
+  function pageToIndex(pageNumber){
+    // pageNumber: 1..LAST_PAGE
+    // في وضع rtl: index 0 يعرض آخر صفحة، لذا نحسب:
+    return pages.length - pageNumber;
+  }
+  function indexToPage(index){
+    return pages.length - index;
+  }
+
+  // افتح العرض ابتدائياً عند "الصفحة 1" بحيث تظهر على الجهة اليسرى (العلامة X)
+  try {
+    const initialIndex = pageToIndex(1);
+    // تأكد من أن المؤشر صالح
+    const clamped = Math.max(0, Math.min(pages.length-1, initialIndex));
+    flip.flip(clamped);
+  } catch(e){
+    console.warn("initial flip error:", e);
+  }
 
   // دالة عامة للانتقال لرقم صفحة (1-based)
   window.flipTo = function(pageNumber){
@@ -182,8 +222,7 @@
     try { flip.flip(idx); } catch(e){ console.error(e); }
   };
 
-  // (اختياري) مناطق نقر شفافة: النصف الأيمن ينتقل للأمام (next)، النصف الأيسر للوراء (prev)
-  // هذا يفيد لو أردت تحكّم إضافي في اتجاه التقليب باللمس/نقر.
+  // إضافة مناطق نقر شفافة للتحكم باللمس/نقر
   (function attachFlipZones(){
     const leftZone = document.createElement('div');
     leftZone.className = 'flip-zone left';
@@ -192,16 +231,22 @@
     bookEl.appendChild(leftZone);
     bookEl.appendChild(rightZone);
 
+    /* ملاحظات حول السلوك في RTL:
+       - بصرياً: الصفحة الأولى تظهر على الجهة اليسرى، والتقليب يتم "من اليسار إلى اليمين".
+       - خرائط DOM معكوسة قليلاً لذلك نربط الأزرار بحيث يكون النقر على الطرف الأيمن (من العرض) يسحب الكتاب إلى الخلف.
+    */
     leftZone.addEventListener('click', ()=> {
-      // في rtl المقصود: النقر على الطرف الأيمن من الواجهة (leftZone DOM) يتقدّم بالكتاب
+      // الطرف الأيمن من DOM (leftZone) => نتقدّم بالكتاب (next visually)
       try{ flip.flipNext(); }catch(e){ try{ flip.flip(Math.max(0, flip.getCurrentPageIndex() - 1)); }catch(_){} }
     }, {passive:true});
     rightZone.addEventListener('click', ()=> {
+      // الطرف الأيسر من DOM (rightZone) => نعود بالكتاب (prev visually)
       try{ flip.flipPrev(); }catch(e){ try{ flip.flip(Math.min(pages.length-1, flip.getCurrentPageIndex() + 1)); }catch(_){} }
     }, {passive:true});
   })();
 
-  // ملاحظة: تحميل الصور تدريجي — إن رأيت دوائر تحميل فهذا طبيعي حتى ينتهي التحميل.
+  // اختياري: اضف هنا أي أزرار تحكم إضافية (تكبير/طباعة/حفظ/إظهار صفحة) إن رغبت.
+
 })();
 </script>
 
